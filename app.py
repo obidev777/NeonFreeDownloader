@@ -1244,7 +1244,9 @@ def upload_file(filepath, download_id):
             sid = revCli.create_sid()
             public_url = revCli.upload(filepath,upload_progress,sid=sid)
             sids.append(sid)
-            os.unlink(filepath)
+            try:
+                os.unlink(filepath)
+            except:pass
             downloads[download_id].update({'upload_progress': 100,
                                            'uploaded': file_size,
                                            'upload_speed': file_size,
@@ -1486,5 +1488,4 @@ def handle_settings():
             return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
-
     app.run(debug=True, threaded=True,port=443)
