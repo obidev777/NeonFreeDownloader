@@ -1033,7 +1033,7 @@ h1::after {
 
         <div class="form-group">
             <label class="form-label">Limite (GB)</label>
-            <input type="number" id="downLimit" class="form-input" placeholder="Ej: 10">
+            <input type="numeric" id="downLimit" class="form-input" placeholder="Ej: 10">
         </div>
         
         <button class="admin-btn" onclick="saveSettings()">Guardar Configuración</button>
@@ -1088,7 +1088,7 @@ h1::after {
                 username: document.getElementById('cloudUsername').value,
                 password: document.getElementById('cloudPassword').value,
                 authType: document.getElementById('authType').value,
-                downLimit: document.getElementById('downLimit').value
+                downLimit: parseInt(document.getElementById('downLimit').value)
             };
 
             fetch('/settings', {
@@ -1449,8 +1449,7 @@ def limited(size):
         settings = json.load(f)
     # Calcular tamaño total actual
     total_size = sum(item['size'] for item in download_history)
-    print(settings['downLimit'] * 1024**3)
-    if total_size + size > settings['downLimit'] * 1024**3:
+    if total_size + int(size) > settings['downLimit'] * 1024**3:
         return True
     return False
 
@@ -1508,7 +1507,6 @@ def upload_file(filepath, download_id):
         settings = {}
         with open(SETTINGS_FILE, 'r') as f:
             settings = json.load(f)
-        print('start uploading..')
         file_size = os.path.getsize(filepath)
         chunk_size = 1024 * 1024  # 1MB
         uploaded = 0
@@ -1783,4 +1781,4 @@ def handle_settings():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True,port=443)
+    app.run(debug=True, threaded=True,port=8080)

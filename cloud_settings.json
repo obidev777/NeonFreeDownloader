@@ -1,7 +1,7 @@
 {
-  "cloudHost": "https://mendive.upr.edu.cu/",
-  "username": "obisoftdev",
+  "cloudHost": "https://opuntiabrava.ult.edu.cu/",
+  "username": "obysofttt",
   "password": "Obysoft2001@",
-  "authType": "MendiveUPR",
-  "downLimit": "5"
+  "authType": "opuntiabrava",
+  "downLimit": 10
 }
