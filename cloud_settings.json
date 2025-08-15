@@ -2,5 +2,6 @@
   "cloudHost": "https://mendive.upr.edu.cu/",
   "username": "obisoftdev",
   "password": "Obysoft2001@",
-  "authType": "MendiveUPR"
+  "authType": "MendiveUPR",
+  "downLimit": "5"
 }

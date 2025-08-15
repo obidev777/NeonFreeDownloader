@@ -12,7 +12,7 @@ import webbrowser
 from rev import *
 
 app = Flask(__name__)
-app.config['DOWNLOAD_FOLDER'] = 'downloads'
+app.config['DOWNLOAD_FOLDER'] = ''
 app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui'
 Cloud_Auth = {}
 SETTINGS_FILE = 'cloud_settings.json'
@@ -23,7 +23,7 @@ downloads = {}
 sids = []
 
 # Asegurar que la carpeta de descargas existe
-os.makedirs(app.config['DOWNLOAD_FOLDER'], exist_ok=True)
+#os.makedirs(app.config['DOWNLOAD_FOLDER'], exist_ok=True)
 
 # HTML Template
 INDEX_HTML = """
@@ -35,736 +35,868 @@ INDEX_HTML = """
     <title>Neon Downloader</title>
     <style>
         :root {
-            --primary: #0f172a;
-            --primary-light: #1e293b;
-            --primary-lighter: #334155;
-            --accent: #38bdf8;
-            --accent-dark: #0ea5e9;
-            --text: #e2e8f0;
-            --text-light: #f8fafc;
-            --text-muted: #94a3b8;
-            --danger: #ef4444;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --background: #0f172a;
-            --card-bg: rgba(15, 23, 42, 0.8);
-            --progress-bg: rgba(30, 41, 59, 0.5);
-            --glass-effect: rgba(30, 41, 59, 0.3);
-            --admin-accent: #8b5cf6;
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        body {
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            min-height: 100vh;
-            color: var(--text);
-            line-height: 1.6;
-        }
-        
-        /* Auth Overlay */
-        .auth-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 3000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .auth-box {
-            background: var(--primary-light);
-            border-radius: 16px;
-            padding: 30px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--glass-effect);
-            text-align: center;
-            animation: fadeIn 0.4s ease-out;
-        }
-        
-        .auth-title {
-            color: var(--accent);
-            margin-bottom: 25px;
-            font-size: 24px;
-        }
-        
-        .auth-input {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 20px;
-            background: var(--primary);
-            border: 1px solid var(--primary-lighter);
-            border-radius: 8px;
-            color: var(--text-light);
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-        
-        .auth-input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        
-        .auth-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-            color: var(--primary);
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .auth-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3);
-        }
-        
-        .auth-error {
-            color: var(--danger);
-            margin-top: 15px;
-            font-size: 14px;
-            display: none;
-        }
-        
-        /* Main Container */
-        .container {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 700px;
-            padding: 40px;
-            text-align: center;
-            border: 1px solid var(--glass-effect);
-            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-            overflow: hidden;
-            position: relative;
-            margin: 20px auto;
-            display: none;
-        }
-        
-        h1 {
-            color: var(--text-light);
-            margin-bottom: 30px;
-            font-weight: 700;
-            font-size: 28px;
-            letter-spacing: -0.5px;
-            position: relative;
-            display: inline-block;
-        }
-        
-        h1::after {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), transparent);
-            border-radius: 2px;
-        }
-        
-        .input-group {
-            display: flex;
-            margin-bottom: 25px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .input-group:focus-within {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
-        }
-        
-        .url-input {
-            flex: 1;
-            padding: 16px 20px;
-            border: none;
-            font-size: 16px;
-            outline: none;
-            background: var(--primary-light);
-            color: var(--text-light);
-            border: 1px solid var(--primary-lighter);
-        }
-        
-        .url-input::placeholder {
-            color: var(--text-muted);
-            opacity: 0.8;
-        }
-        
-        .btn {
-            padding: 16px 28px;
-            border: none;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-            color: var(--primary);
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .btn::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3);
-        }
-        
-        .btn:hover::after {
-            opacity: 1;
-        }
-        
-        .btn:disabled {
-            background: var(--primary-lighter);
-            color: var(--text-muted);
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-        
-        .btn-secondary {
-            background: transparent;
-            color: var(--accent);
-            border: 1px solid var(--accent);
-            margin-top: 15px;
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(56, 189, 248, 0.1);
-            box-shadow: 0 5px 15px rgba(56, 189, 248, 0.1);
-        }
-        
-        .progress-container {
-            margin-top: 40px;
-            display: none;
-            animation: fadeIn 0.6s forwards;
-        }
-        
-        .progress-section {
-            margin-bottom: 30px;
-            background: var(--progress-bg);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--primary-lighter);
-        }
-        
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            align-items: center;
-        }
-        
-        .progress-title {
-            font-weight: 600;
-            color: var(--text-light);
-            margin-bottom: 5px;
-            text-align: left;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .progress-title::before {
-            content: '';
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--accent);
-            box-shadow: 0 0 10px var(--accent);
-        }
-        
-        .filename {
-            font-weight: 500;
-            color: var(--text-light);
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
-            flex: 1;
-            text-align: left;
-            font-size: 15px;
-        }
-        
-        .file-size {
-            color: var(--text-muted);
-            font-size: 14px;
-            margin-left: 15px;
-            white-space: nowrap;
-        }
-        
-        .progress-bar {
-            height: 8px;
-            background: var(--primary-light);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 15px;
-            position: relative;
-        }
-        
-        .progress-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            animation: pulse 2s infinite;
-        }
-        
-        .progress {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), var(--accent-dark));
-            width: 0%;
-            transition: width 0.4s ease-out;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .progress-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            color: var(--text-muted);
-            margin-bottom: 5px;
-        }
-        
-        .progress-percent {
-            font-weight: 600;
-            color: var(--accent);
-        }
-        
-        .speed {
-            color: var(--text-light);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .speed::before {
-            content: '⬇️';
-            font-size: 12px;
-        }
-        
-        .upload-speed::before {
-            content: '⬆️';
-        }
-        
-        .eta {
-            color: var(--text-light);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .eta::before {
-            content: '⏱️';
-            font-size: 12px;
-        }
-        
-        .btn-cancel {
-            margin-top: 20px;
-            padding: 12px 24px;
-            background: transparent;
-            color: var(--danger);
-            border: 1px solid var(--danger);
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            width: 100%;
-        }
-        
-        .btn-cancel:hover {
-            background: rgba(239, 68, 68, 0.1);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.1);
-        }
-        
-        .status {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            text-align: center;
-            border: 1px solid transparent;
-        }
-        
-        .status.downloading {
-            background: rgba(56, 189, 248, 0.1);
-            color: var(--accent);
-            border-color: var(--accent);
-        }
-        
-        .status.completed {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-            border-color: var(--success);
-        }
-        
-        .status.canceled {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border-color: var(--danger);
-        }
-        
-        .status.error {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning);
-            border-color: var(--warning);
-        }
-        
-        .status.uploading {
-            background: rgba(56, 189, 248, 0.1);
-            color: var(--accent);
-            border-color: var(--accent);
-            animation: pulse 2s infinite;
-        }
-        
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            animation: fadeIn 0.3s ease-out;
-        }
-        
-        .modal-content {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 30px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--glass-effect);
-            text-align: center;
-            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            transform: translateY(20px);
-            opacity: 0;
-        }
-        
-        .modal-title {
-            color: var(--text-light);
-            margin-bottom: 20px;
-            font-size: 24px;
-            font-weight: 700;
-        }
-        
-        .file-info {
-            margin: 20px 0;
-            text-align: left;
-            padding: 20px;
-            background: var(--progress-bg);
-            border-radius: 12px;
-            border: 1px solid var(--primary-lighter);
-        }
-        
-        .file-info-item {
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .file-info-label {
-            color: var(--text-muted);
-            font-size: 14px;
-        }
-        
-        .file-info-value {
-            color: var(--text-light);
-            font-weight: 500;
-            text-align: right;
-            max-width: 60%;
-            word-break: break-all;
-        }
-        
-        .download-link {
-            display: block;
-            background: rgba(56, 189, 248, 0.1);
-            color: var(--accent);
-            padding: 16px;
-            border-radius: 8px;
-            margin: 20px 0;
-            word-break: break-all;
-            text-decoration: none;
-            border: 1px solid var(--accent);
-            transition: all 0.3s;
-            font-weight: 500;
-        }
-        
-        .download-link:hover {
-            background: rgba(56, 189, 248, 0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(56, 189, 248, 0.1);
-        }
-        
-        .modal-btn {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-            color: var(--primary);
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 15px;
-            width: 100%;
-        }
-        
-        .modal-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(56, 189, 248, 0.2);
-        }
-        
-        /* Panel de administración */
-        .admin-panel {
-            position: fixed;
-            top: 0;
-            right: -400px;
-            width: 380px;
-            height: 100vh;
-            background: var(--primary-light);
-            backdrop-filter: blur(10px);
-            border-left: 1px solid var(--glass-effect);
-            padding: 20px;
-            z-index: 2000;
-            transition: right 0.3s ease-out;
-            overflow-y: auto;
-        }
-        
-        .admin-panel.active {
-            right: 0;
-        }
-        
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--primary-lighter);
-        }
-        
-        .admin-title {
-            color: var(--admin-accent);
-            font-size: 20px;
-            font-weight: 600;
-        }
-        
-        .close-admin {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 24px;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-        
-        .close-admin:hover {
-            color: var(--danger);
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--text-light);
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 12px 15px;
-            background: var(--primary);
-            border: 1px solid var(--primary-lighter);
-            border-radius: 8px;
-            color: var(--text-light);
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        
-        .form-select {
-            width: 100%;
-            padding: 12px 15px;
-            background: var(--primary);
-            border: 1px solid var(--primary-lighter);
-            border-radius: 8px;
-            color: var(--text-light);
-            font-size: 14px;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            background-size: 16px;
-        }
-        
-        .admin-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, var(--admin-accent), #7c3aed);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
-        }
-        
-        .admin-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);
-        }
-        
-        .admin-btn-secondary {
-            background: transparent;
-            border: 1px solid var(--admin-accent);
-            color: var(--admin-accent);
-        }
-        
-        .admin-btn-secondary:hover {
-            background: rgba(139, 92, 246, 0.1);
-        }
-        
-        .admin-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-            z-index: 1500;
-            display: none;
-        }
-        
-        .admin-overlay.active {
-            display: block;
-        }
-        
-        .btn-admin {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--admin-accent), #7c3aed);
-            color: white;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-            display: none;
-        }
-        
-        .btn-admin:hover {
-            transform: translateY(-3px) scale(1.1);
-        }
-        
-        /* Responsive */
-        @media (max-width: 600px) {
-            .container {
-                padding: 25px;
-                border-radius: 12px;
-            }
-            
-            h1 {
-                font-size: 24px;
-            }
-            
-            .input-group {
-                flex-direction: column;
-            }
-            
-            .url-input {
-                border-radius: 12px 12px 0 0;
-            }
-            
-            .btn {
-                width: 100%;
-                border-radius: 0 0 12px 12px;
-            }
-            
-            .progress-section {
-                padding: 15px;
-            }
-            
-            .modal-content {
-                padding: 20px;
-                width: 95%;
-            }
-            
-            .admin-panel {
-                width: 90%;
-                right: -100%;
-            }
-        }
+    --primary: #0f172a;
+    --primary-light: #1e293b;
+    --primary-lighter: #334155;
+    --accent: #38bdf8;
+    --accent-dark: #0ea5e9;
+    --text: #e2e8f0;
+    --text-light: #f8fafc;
+    --text-muted: #94a3b8;
+    --danger: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --background: #0f172a;
+    --card-bg: rgba(15, 23, 42, 0.8);
+    --progress-bg: rgba(30, 41, 59, 0.5);
+    --glass-effect: rgba(30, 41, 59, 0.3);
+    --admin-accent: #8b5cf6;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+body {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    min-height: 100vh;
+    color: var(--text);
+    line-height: 1.6;
+}
+
+/* Auth Overlay */
+.auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 3000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-box {
+    background: var(--primary-light);
+    border-radius: 16px;
+    padding: 30px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--glass-effect);
+    text-align: center;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.auth-title {
+    color: var(--accent);
+    margin-bottom: 25px;
+    font-size: 24px;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 20px;
+    background: var(--primary);
+    border: 1px solid var(--primary-lighter);
+    border-radius: 8px;
+    color: var(--text-light);
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.auth-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: var(--primary);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3);
+}
+
+.auth-error {
+    color: var(--danger);
+    margin-top: 15px;
+    font-size: 14px;
+    display: none;
+}
+
+/* Main Container */
+.container {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 700px;
+    padding: 40px;
+    text-align: center;
+    border: 1px solid var(--glass-effect);
+    animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    position: relative;
+    margin: 20px auto;
+    display: none;
+}
+
+h1 {
+    color: var(--text-light);
+    margin-bottom: 30px;
+    font-weight: 700;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    position: relative;
+    display: inline-block;
+}
+
+h1::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    border-radius: 2px;
+}
+
+.input-group {
+    display: flex;
+    margin-bottom: 25px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.input-group:focus-within {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
+}
+
+.url-input {
+    flex: 1;
+    padding: 16px 20px;
+    border: none;
+    font-size: 16px;
+    outline: none;
+    background: var(--primary-light);
+    color: var(--text-light);
+    border: 1px solid var(--primary-lighter);
+}
+
+.url-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+.btn {
+    padding: 16px 28px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: var(--primary);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3);
+}
+
+.btn:hover::after {
+    opacity: 1;
+}
+
+.btn:disabled {
+    background: var(--primary-lighter);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    margin-top: 15px;
+}
+
+.btn-secondary:hover {
+    background: rgba(56, 189, 248, 0.1);
+    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.1);
+}
+
+.progress-container {
+    margin-top: 40px;
+    display: none;
+    animation: fadeIn 0.6s forwards;
+}
+
+.progress-section {
+    margin-bottom: 30px;
+    background: var(--progress-bg);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--primary-lighter);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.progress-title {
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 5px;
+    text-align: left;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.progress-title::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+}
+
+.filename {
+    font-weight: 500;
+    color: var(--text-light);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    flex: 1;
+    text-align: left;
+    font-size: 15px;
+}
+
+.file-size {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-left: 15px;
+    white-space: nowrap;
+}
+
+.progress-bar {
+    height: 8px;
+    background: var(--primary-light);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: pulse 2s infinite;
+}
+
+.progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+    width: 0%;
+    transition: width 0.4s ease-out;
+    position: relative;
+    z-index: 2;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.progress-percent {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.speed {
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.speed::before {
+    content: '⬇️';
+    font-size: 12px;
+}
+
+.upload-speed::before {
+    content: '⬆️';
+}
+
+.eta {
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.eta::before {
+    content: '⏱️';
+    font-size: 12px;
+}
+
+.btn-cancel {
+    margin-top: 20px;
+    padding: 12px 24px;
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 100%;
+}
+
+.btn-cancel:hover {
+    background: rgba(239, 68, 68, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(239, 68, 68, 0.1);
+}
+
+.status {
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid transparent;
+}
+
+.status.downloading {
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.status.completed {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.status.canceled {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+.status.error {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+.status.uploading {
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--accent);
+    border-color: var(--accent);
+    animation: pulse 2s infinite;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 30px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-effect);
+    text-align: center;
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform: translateY(20px);
+    opacity: 0;
+}
+
+.modal-title {
+    color: var(--text-light);
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.file-info {
+    margin: 20px 0;
+    text-align: left;
+    padding: 20px;
+    background: var(--progress-bg);
+    border-radius: 12px;
+    border: 1px solid var(--primary-lighter);
+}
+
+.file-info-item {
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.file-info-label {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.file-info-value {
+    color: var(--text-light);
+    font-weight: 500;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-all;
+}
+
+.download-link {
+    display: block;
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--accent);
+    padding: 16px;
+    border-radius: 8px;
+    margin: 20px 0;
+    word-break: break-all;
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.download-link:hover {
+    background: rgba(56, 189, 248, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.1);
+}
+
+.modal-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: var(--primary);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 15px;
+    width: 100%;
+}
+
+.modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.2);
+}
+
+/* Panel de administración */
+.admin-panel {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 380px;
+    height: 100vh;
+    background: var(--primary-light);
+    backdrop-filter: blur(10px);
+    border-left: 1px solid var(--glass-effect);
+    padding: 20px;
+    z-index: 2000;
+    transition: right 0.3s ease-out;
+    overflow-y: auto;
+}
+
+.admin-panel.active {
+    right: 0;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--primary-lighter);
+}
+
+.admin-title {
+    color: var(--admin-accent);
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.close-admin {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close-admin:hover {
+    color: var(--danger);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-light);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 15px;
+    background: var(--primary);
+    border: 1px solid var(--primary-lighter);
+    border-radius: 8px;
+    color: var(--text-light);
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px 15px;
+    background: var(--primary);
+    border: 1px solid var(--primary-lighter);
+    border-radius: 8px;
+    color: var(--text-light);
+    font-size: 14px;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+}
+
+.admin-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--admin-accent), #7c3aed);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.admin-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);
+}
+
+.admin-btn-secondary {
+    background: transparent;
+    border: 1px solid var(--admin-accent);
+    color: var(--admin-accent);
+}
+
+.admin-btn-secondary:hover {
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.admin-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    z-index: 1500;
+    display: none;
+}
+
+.admin-overlay.active {
+    display: block;
+}
+
+.btn-admin {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--admin-accent), #7c3aed);
+    color: white;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    display: none;
+}
+
+.btn-admin:hover {
+    transform: translateY(-3px) scale(1.1);
+}
+
+/* Historial de descargas */
+.history-section {
+    margin-top: 40px;
+    background: var(--progress-bg);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--primary-lighter);
+    animation: fadeIn 0.6s forwards;
+}
+
+.section-title {
+    color: var(--text-light);
+    margin-bottom: 20px;
+    font-size: 20px;
+    text-align: left;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+.history-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.history-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.history-item {
+    background: var(--primary-light);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.history-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.history-file {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    text-align: left;
+}
+
+.history-filename {
+    color: var(--text-light);
+    font-weight: 500;
+    margin-bottom: 5px;
+    word-break: break-all;
+}
+
+.history-size {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.history-date {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0 15px;
+    white-space: nowrap;
+}
+
+.history-actions button {
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.history-actions button:hover {
+    background: rgba(56, 189, 248, 0.2);
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--primary-light);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-dark);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .container {
+        padding: 25px;
+        border-radius: 12px;
+    }
+    
+    h1 {
+        font-size: 24px;
+    }
+    
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .url-input {
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .btn {
+        width: 100%;
+        border-radius: 0 0 12px 12px;
+    }
+    
+    .progress-section {
+        padding: 15px;
+    }
+    
+    .modal-content {
+        padding: 20px;
+        width: 95%;
+    }
+    
+    .admin-panel {
+        width: 90%;
+        right: -100%;
+    }
+    
+    .history-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .history-date {
+        margin: 5px 0;
+    }
+    
+    .history-actions {
+        align-self: flex-end;
+    }
+}
     </style>
 </head>
 <body>
@@ -826,6 +958,19 @@ INDEX_HTML = """
             <div id="status" class="status downloading">Preparando descarga...</div>
             <button id="cancel-btn" class="btn-cancel" onclick="cancelDownload()">Cancelar Proceso</button>
         </div>
+
+        <!-- Sección de Historial -->
+        <div id="history-section" class="history-section" style="display: none;">
+            <h2 class="section-title">Historial de Descargas</h2>
+            <div class="history-stats">
+                <span id="total-downloads">0 archivos</span>
+                <span id="total-size">0 MB</span>
+            </div>
+            <div class="history-list" id="history-list">
+                <!-- Los elementos del historial se agregarán aquí dinámicamente -->
+            </div>
+            <button class="btn btn-secondary" onclick="clearHistory()">Limpiar Historial</button>
+        </div>
     </div>
 
     <!-- Modal para descarga completada -->
@@ -885,6 +1030,11 @@ INDEX_HTML = """
             <label class="form-label">Tipo de Autenticación</label>
             <input type="text" id="authType" class="form-input" placeholder="Ej: TypeCloud">
         </div>
+
+        <div class="form-group">
+            <label class="form-label">Limite (GB)</label>
+            <input type="number" id="downLimit" class="form-input" placeholder="Ej: 10">
+        </div>
         
         <button class="admin-btn" onclick="saveSettings()">Guardar Configuración</button>
         <button class="admin-btn admin-btn-secondary" onclick="loadSettings()">Cargar Configuración</button>
@@ -911,6 +1061,8 @@ INDEX_HTML = """
                 
                 // Cargar configuración al autenticar
                 loadSettings();
+                // Cargar historial al autenticar
+                loadHistory();
             } else {
                 errorElement.style.display = 'block';
                 document.getElementById('authPassword').value = '';
@@ -919,13 +1071,6 @@ INDEX_HTML = """
                 }, 3000);
             }
         }
-
-        // Permitir autenticación con Enter
-        document.getElementById('authPassword').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                checkAuth();
-            }
-        });
 
         // Panel de administración
         function toggleAdminPanel() {
@@ -942,7 +1087,8 @@ INDEX_HTML = """
                 cloudHost: document.getElementById('cloudHost').value,
                 username: document.getElementById('cloudUsername').value,
                 password: document.getElementById('cloudPassword').value,
-                authType: document.getElementById('authType').value
+                authType: document.getElementById('authType').value,
+                downLimit: document.getElementById('downLimit').value
             };
 
             fetch('/settings', {
@@ -982,6 +1128,7 @@ INDEX_HTML = """
                     document.getElementById('cloudUsername').value = data.settings.username || '';
                     document.getElementById('cloudPassword').value = data.settings.password || '';
                     document.getElementById('authType').value = data.settings.authType || 'api_key';
+                    document.getElementById('downLimit').value = data.settings.downLimit || 'api_key';
                     console.log('Configuración cargada correctamente');
                 } else {
                     console.error('Error:', data.message || 'Error al cargar configuración');
@@ -990,6 +1137,63 @@ INDEX_HTML = """
             .catch(error => {
                 console.error('Error:', error);
             });
+        }
+
+        // Historial de descargas
+        function loadHistory() {
+            fetch('/api/history')
+                .then(response => response.json())
+                .then(data => {
+                    const historyList = document.getElementById('history-list');
+                    historyList.innerHTML = '';
+                    
+                    if (data.history && data.history.length > 0) {
+                        document.getElementById('history-section').style.display = 'block';
+                        
+                        data.history.forEach(item => {
+                            const historyItem = document.createElement('div');
+                            historyItem.className = 'history-item';
+                            historyItem.innerHTML = `
+                                <div class="history-file">
+                                    <span class="history-filename">${item.filename}</span>
+                                    <span class="history-size">${formatFileSize(item.size)}</span>
+                                </div>
+                                <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
+                                <div class="history-actions">
+                                    <button class="history-download" onclick="location.href='${item.url}';">Descargar</button>
+                                </div>
+                            `;
+                            historyList.appendChild(historyItem);
+                        });
+                        
+                        document.getElementById('total-downloads').textContent = `${data.history.length} archivos`;
+                        document.getElementById('total-size').textContent = `${formatFileSize(data.total_size)}`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar historial:', error);
+                });
+        }
+
+        function clearHistory() {
+            if (confirm('¿Estás seguro de que deseas borrar todo el historial de descargas?')) {
+                fetch('/api/history', {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadHistory();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al borrar historial:', error);
+                });
+            }
+        }
+
+        function downloadFromHistory(filename) {
+            window.location.href = `/download-file/${downloadId}/${encodeURIComponent(filename)}`;
         }
 
         // Funciones del Neon Downloader
@@ -1146,6 +1350,9 @@ INDEX_HTML = """
                 document.querySelector('.modal-content').style.transform = 'translateY(0)';
                 document.querySelector('.modal-content').style.opacity = '1';
             }, 10);
+            
+            // Actualizar el historial después de completar la descarga
+            loadHistory();
         }
         
         function closeModal() {
@@ -1219,6 +1426,85 @@ INDEX_HTML = """
 </html>
 """
 
+# Estructura para almacenar el historial
+download_history = []
+
+def get_history_file():
+    return os.path.join(app.instance_path, 'download_history.json')
+
+def load_history():
+    history_file = get_history_file()
+    if os.path.exists(history_file):
+        with open(history_file, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_history():
+    history_file = get_history_file()
+    os.makedirs(os.path.dirname(history_file), exist_ok=True)
+    with open(history_file, 'w') as f:
+        json.dump(download_history, f)
+
+def limited(size):
+    settings = {}
+    with open(SETTINGS_FILE, 'r') as f:
+        settings = json.load(f)
+    # Calcular tamaño total actual
+    total_size = sum(item['size'] for item in download_history)
+    print(settings['downLimit'] * 1024**3)
+    if total_size + size > settings['downLimit'] * 1024**3:
+        return True
+    return False
+
+def add_to_history(filename, size,cloud_sid,url_down):
+    settings = {}
+    with open(SETTINGS_FILE, 'r') as f:
+        settings = json.load(f)
+    # Calcular tamaño total actual
+    total_size = sum(item['size'] for item in download_history)
+    
+    # Verificar límite de almacenamiento
+    if total_size + size > settings['downLimit'] * 1024**3:
+        return False
+    
+    # Agregar al historial
+    download_history.append({
+        'filename': filename,
+        'size': size,
+        'timestamp': datetime.now().isoformat(),
+        'url': url_down,
+        'cloud_sid':cloud_sid
+    })
+    
+    # Mantener solo los últimos 100 registros
+    if len(download_history) > 100:
+        download_history.pop(0)
+    
+    save_history()
+    return True
+
+def clear_history():
+    global download_history
+    download_history = []
+    save_history()
+    return True
+
+@app.route('/api/history', methods=['GET', 'DELETE'])
+def handle_history():
+    settings = {}
+    with open(SETTINGS_FILE, 'r') as f:
+        settings = json.load(f)
+    if request.method == 'GET':
+        return jsonify({
+            'history': download_history,
+            'total_size': sum(item['size'] for item in download_history),
+            'max_size': settings['downLimit'] * 1024**3
+        })
+    elif request.method == 'DELETE':
+        if clear_history():
+            return jsonify({'success': True})
+        return jsonify({'success': False}), 500
+
 def upload_file(filepath, download_id):
     try:
         settings = {}
@@ -1243,6 +1529,7 @@ def upload_file(filepath, download_id):
             Cloud_Auth['cookies'] = revCli.getsession().cookies.get_dict()
             sid = revCli.create_sid()
             public_url = revCli.upload(filepath,upload_progress,sid=sid)
+            add_to_history(filepath,file_size,sid,public_url)
             sids.append(sid)
             try:
                 os.unlink(filepath)
@@ -1251,7 +1538,6 @@ def upload_file(filepath, download_id):
                                            'uploaded': file_size,
                                            'upload_speed': file_size,
                                            'upload_status': 'uploading'})
-
         return {
             'success': True,
             'public_url': public_url,
@@ -1296,6 +1582,13 @@ def download_and_upload(download_id, url):
                 filename = os.path.basename(urlparse(url).path) or f'descarga-{download_id[:6]}'
             
             total_size = int(r.headers.get('content-length', 0))
+
+            if limited(total_size):
+                downloads[download_id].update({
+                    'status': 'error',
+                    'upload_status': 'Error Limited!',
+                    'message': "A exedido el limite de Archivos, Limpie el Historial!."})
+                return
             
             downloads[download_id].update({
                 'filename': secure_filename(filename),
@@ -1352,6 +1645,7 @@ def download_and_upload(download_id, url):
     except Exception as e:
         downloads[download_id].update({
             'status': 'error',
+            'upload_status': 'error',
             'message': str(e)
         })
 
@@ -1486,6 +1780,9 @@ def handle_settings():
         
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=True,port=443)
