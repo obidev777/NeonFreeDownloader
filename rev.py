@@ -778,7 +778,7 @@ class RevCli(object):
         return sid
 
     def delete_sid(self,sid,csrfToken=''):
-        if authToken is '':
+        if csrfToken == '':
             resp = self.session.get(f'{self.host}index.php/{self.type}/submission/wizard', proxies=self.proxy,
                                     headers=self.headers, verify=False)
             soup = BeautifulSoup(resp.text, "html.parser")

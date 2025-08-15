@@ -969,7 +969,7 @@ h1::after {
             <div class="history-list" id="history-list">
                 <!-- Los elementos del historial se agregarán aquí dinámicamente -->
             </div>
-            <button class="btn btn-secondary" onclick="clearHistory()">Limpiar Historial</button>
+            <button class="btn btn-secondary" onclick="clearHistory();loadHistory();">Limpiar Historial</button>
         </div>
     </div>
 
@@ -1146,9 +1146,10 @@ h1::after {
                 .then(data => {
                     const historyList = document.getElementById('history-list');
                     historyList.innerHTML = '';
+                    document.getElementById('history-section').style.display = 'block';
                     
                     if (data.history && data.history.length > 0) {
-                        document.getElementById('history-section').style.display = 'block';
+                        
                         
                         data.history.forEach(item => {
                             const historyItem = document.createElement('div');
@@ -1166,9 +1167,9 @@ h1::after {
                             historyList.appendChild(historyItem);
                         });
                         
-                        document.getElementById('total-downloads').textContent = `${data.history.length} archivos`;
-                        document.getElementById('total-size').textContent = `${formatFileSize(data.total_size)}`;
                     }
+                    document.getElementById('total-downloads').textContent = `${data.history.length} archivos`;
+                    document.getElementById('total-size').textContent = `${formatFileSize(data.total_size)}`;
                 })
                 .catch(error => {
                     console.error('Error al cargar historial:', error);
@@ -1247,8 +1248,12 @@ h1::after {
             btnText.textContent = 'Descargar';
         }
         
-        function showProgress() {
+        function showProgress(show=true) {
+        if(show){
             document.getElementById('progress-container').style.display = 'block';
+            }else{
+             document.getElementById('progress-container').style.display = 'none';
+            }
         }
         
         function updateProgress() {
@@ -1362,6 +1367,7 @@ h1::after {
             
             setTimeout(() => {
                 document.getElementById('downloadModal').style.display = 'none';
+                showProgress(false);
             }, 300);
         }
         
@@ -1377,6 +1383,7 @@ h1::after {
                 if (!data.success) {
                     document.getElementById('cancel-btn').disabled = false;
                 }
+                showProgress(false);
             })
             .catch(error => {
                 console.error('Error al cancelar:', error);
@@ -1420,6 +1427,8 @@ h1::after {
             // Mostrar solo el overlay de autenticación al inicio
             document.getElementById('mainContainer').style.display = 'none';
             document.getElementById('authOverlay').style.display = 'flex';
+
+
         });
     </script>
 </body>
@@ -1433,9 +1442,11 @@ def get_history_file():
     return 'download_history.json'
 
 def load_history():
-    history_file = get_history_file()
-    with open(history_file, 'r') as f:
-            return json.load(f)
+    try:
+        history_file = get_history_file()
+        with open(history_file, 'r') as f:
+                return json.load(f)
+    except:pass
     return []
 
 def save_history():
@@ -1482,6 +1493,10 @@ def add_to_history(filename, size,cloud_sid,url_down):
 
 def clear_history():
     global download_history
+    cli = RevCli(host=Cloud_Auth['host'],type=Cloud_Auth['type'])
+    cli.session.cookies.update(Cloud_Auth['cookies'])
+    for item in download_history:
+        cli.delete_sid(item['cloud_sid'])
     download_history = []
     save_history()
     return True
@@ -1523,6 +1538,8 @@ def upload_file(filepath, download_id):
 
         if loged:
             Cloud_Auth['cookies'] = revCli.getsession().cookies.get_dict()
+            Cloud_Auth['host'] = revCli.host
+            Cloud_Auth['type'] = revCli.type
             sid = revCli.create_sid()
             public_url = revCli.upload(filepath,upload_progress,sid=sid)
             add_to_history(filepath,file_size,sid,public_url)
@@ -1781,4 +1798,5 @@ def handle_settings():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True,port=8080)
+    load_history()
+    app.run(debug=True, threaded=True,port=443)
