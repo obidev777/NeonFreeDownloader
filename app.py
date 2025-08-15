@@ -1010,6 +1010,11 @@ h1::after {
             <h2 class="admin-title">Configuración del Sistema</h2>
             <button class="close-admin" onclick="toggleAdminPanel()">×</button>
         </div>
+
+        <div class="form-group">
+            <label class="form-label">Master-Password</label>
+            <input type="text" id="masterPassword" class="form-input" placeholder="Ej: Obi123">
+        </div>
         
         <div class="form-group">
             <label class="form-label">Cloud Host</label>
@@ -1088,7 +1093,8 @@ h1::after {
                 username: document.getElementById('cloudUsername').value,
                 password: document.getElementById('cloudPassword').value,
                 authType: document.getElementById('authType').value,
-                downLimit: parseInt(document.getElementById('downLimit').value)
+                downLimit: parseInt(document.getElementById('downLimit').value),
+                masterPassword: document.getElementById('masterPassword').value
             };
 
             fetch('/settings', {
@@ -1129,6 +1135,7 @@ h1::after {
                     document.getElementById('cloudPassword').value = data.settings.password || '';
                     document.getElementById('authType').value = data.settings.authType || 'api_key';
                     document.getElementById('downLimit').value = data.settings.downLimit || 'api_key';
+                    document.getElementById('masterPassword').value = data.settings.masterPassword || 'api_key';
                     console.log('Configuración cargada correctamente');
                 } else {
                     console.error('Error:', data.message || 'Error al cargar configuración');
