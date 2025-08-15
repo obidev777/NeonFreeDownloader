@@ -816,26 +816,16 @@ class RevCli(object):
         return False
 
     def delete_all_sid(self):
-        #listPanel__item--submission__id
-        resp = self.session.get(f'{self.host}index.php/{self.type}/submissions', proxies=self.proxy,
-                                headers=self.headers, verify=False)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        inputs = soup.find_all('input')
-        scripts = soup.find_all('script')
-        csrfToken = ''
-        for s in scripts:
-            js = s.next
-            lines = str(js).split(';')
-            if 'csrfToken' in js:
-                for lin in lines:
-                    if 'csrfToken' in lin:
-                        jsondata = '{' + str(lin).split('{', 2)[1]
-                        jsondata = json.loads(jsondata)
-                        csrfToken = jsondata['csrfToken']
-                        break
-        ids = soup.find_all('li')
-        for id in ids:
-            self.delete_sid(id.text,csrfToken)
+        try:
+            resp = self.session.get(f'{self.host}index.php/{self.type}/submissions', proxies=self.proxy,
+                                    headers=self.headers, verify=False)
+            soup = BeautifulSoup(resp.text, "html.parser")
+            submisions = json.loads(soup.find_all('script')[-2].text.split('"Page", ')[-1].replace(');\n\t',''))['components']['myQueue']['items']
+            for subm in submisions:
+                self.delete_sid(subm['id'])
+            return True
+        except:pass
+        return False
 
     def add_cookie_to_session(self,name: str,
         value: str,
@@ -860,6 +850,7 @@ class RevCli(object):
 #cli = RevCli('obysofttt','Obysoft2001@',host='https://opuntiabrava.ult.edu.cu/',type='opuntiabrava')
 #loged = cli.login()
 #if loged:
+#    cli.delete_all_sid()
 #    print('loged')
 #    sid = cli.create_sid_opuntiabrava()
 #    print(sid)
