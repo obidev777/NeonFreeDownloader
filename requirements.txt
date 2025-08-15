@@ -4,3 +4,4 @@ bs4
 requests_toolbelt
 gunicorn
 werkzeug
+flask
