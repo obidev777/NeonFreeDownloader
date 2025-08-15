@@ -13,6 +13,7 @@ import requests_toolbelt as rt
 import json
 import time
 import re
+from requests.cookies import RequestsCookieJar
 
 try:
     requests.packages.urllib3.disable_warnings()
@@ -54,6 +55,7 @@ class RevCli(object):
         self.session = requests.Session()
         self.headers = {'User-Agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:107.0) Gecko/20100101 Firefox/107.0'}
         self.serversid = 'http://pyobigram.file2link.ydns.eu:8900/get_sid'
+        self.cookies = None
 
     def getsession(self):
         return self.session
@@ -162,6 +164,49 @@ class RevCli(object):
         return sid
 
     def create_sid_mendive_upr(self):
+        resp = self.session.get(f'{self.host}index.php/{self.type}/submission/wizard',proxies=self.proxy,headers=self.headers,verify=False)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        inputs= soup.find_all('input')
+        scripts = soup.find_all('script')
+
+        csrfToken = ''
+        for s in scripts:
+                   js = s.next
+                   lines = str(js).split(';')
+                   if 'csrfToken' in js:
+                           for lin in lines:
+                               if 'csrfToken' in lin:
+                                jsondata = '{' + str(lin).split('{',2)[1]
+                                jsondata = json.loads(jsondata)
+                                csrfToken = jsondata['csrfToken']
+                                break
+
+        pstr = '''csrfToken=6f54c6d978191417c2b0a4850b4f28f9&submissionChecklist=1&locale=es_ES&sectionId=1&checklist-0=1&checklist-1=1&checklist-2=1&checklist-3=1&checklist-4=1&checklist-5=1&checklist-6=1&commentsToEditor=&userGroupId=14&copyrightNoticeAgree=1&privacyConsent=1&submitFormButton='''
+        payload = {}
+        tokens = pstr.split('&')
+        for t in tokens:
+            tt = t.split('=')
+            key = ''
+            value = ''
+            if len(tt)>0:
+                key = tt[0]
+            if len(tt)>1:
+                value = tt[1]
+            if key:
+                payload[key] = value
+
+        payload['csrfToken'] = csrfToken
+
+        resp = self.session.post(f'{self.host}index.php/{self.type}/submission/saveStep/1',data=payload,proxies=self.proxy,headers=self.headers,verify=False)
+
+        #print(resp.text)
+        sidurl = json.loads(resp.text)['events'][0]['data']
+
+        sid = sidurl.split('?')[1].split('#')[0].split('=')[1]
+        #print(sid)
+        return sid
+
+    def create_sid_opuntiabrava(self):
         resp = self.session.get(f'{self.host}index.php/{self.type}/submission/wizard',proxies=self.proxy,headers=self.headers,verify=False)
         soup = BeautifulSoup(resp.text, "html.parser")
         inputs= soup.find_all('input')
@@ -410,6 +455,8 @@ class RevCli(object):
             return self.create_sid_stg()
         if 'tecedu' in self.host:
             return self.create_sid_tecedu()
+        if 'opuntiabrava' in self.host:
+            return self.create_sid_opuntiabrava()
 
 
     def create_sid_uciencia(self):
@@ -790,13 +837,31 @@ class RevCli(object):
         for id in ids:
             self.delete_sid(id.text,csrfToken)
 
+    def add_cookie_to_session(self,name: str,
+        value: str,
+        domain: str,
+        path: str = "/",
+        secure: bool = False,
+        expires: int = None,
+        http_only: bool = False
+        ) -> None:
+        if not isinstance(self.session.cookies, RequestsCookieJar):
+            self.session.cookies = RequestsCookieJar()
+        self.session.cookies.set(
+            name=name,
+            value=value,
+            domain=domain,
+            path=path,
+            secure=secure,
+            expires=expires,
+        )
+        #print(f"Cookie añadida: {name}={value} (Domain: {domain})")
 
-
-#cli = RieCu('freechunkdl','Jose211005*',host='https://publicaciones.uci.cu/',type='serie')
+#cli = RevCli('obysofttt','Obysoft2001@',host='https://opuntiabrava.ult.edu.cu/',type='opuntiabrava')
 #loged = cli.login()
 #if loged:
 #    print('loged')
-#    sid = cli.create_sid_serie()
+#    sid = cli.create_sid_opuntiabrava()
 #    print(sid)
 #    url = cli.upload('requirements.txt',sid=sid)
 #    print(url)
