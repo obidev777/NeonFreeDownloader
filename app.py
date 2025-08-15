@@ -1430,18 +1430,16 @@ h1::after {
 download_history = []
 
 def get_history_file():
-    return os.path.join(app.instance_path, 'download_history.json')
+    return 'download_history.json'
 
 def load_history():
     history_file = get_history_file()
-    if os.path.exists(history_file):
-        with open(history_file, 'r') as f:
+    with open(history_file, 'r') as f:
             return json.load(f)
     return []
 
 def save_history():
     history_file = get_history_file()
-    os.makedirs(os.path.dirname(history_file), exist_ok=True)
     with open(history_file, 'w') as f:
         json.dump(download_history, f)
 
