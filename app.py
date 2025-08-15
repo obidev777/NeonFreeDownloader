@@ -1486,4 +1486,5 @@ def handle_settings():
             return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True)
+
+    app.run(debug=True, threaded=True,port=443)
