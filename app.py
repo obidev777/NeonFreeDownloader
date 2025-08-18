@@ -1809,4 +1809,5 @@ def handle_settings():
 
 
 if __name__ == '__main__':
+    download_history = loadHistory()
     app.run(debug=True, threaded=True,port=443)
