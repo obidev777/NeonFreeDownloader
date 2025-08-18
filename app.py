@@ -1049,6 +1049,8 @@ h1::after {
         // Configuración
         const EXTERNAL_LINK = "https://ejemplo.com/soporte";
         const ADMIN_PASSWORD = "obi123";
+        const CLIENT_PASSWORD = "client2025";
+        let IS_ADMIN = false;
         let downloadId = null;
         let updateInterval = null;
         let isAuthenticated = false;
@@ -1059,6 +1061,7 @@ h1::after {
             const errorElement = document.getElementById('authError');
             
             if (password === ADMIN_PASSWORD) {
+                IS_ADMIN = true;
                 isAuthenticated = true;
                 document.getElementById('authOverlay').style.display = 'none';
                 document.getElementById('mainContainer').style.display = 'block';
@@ -1068,8 +1071,19 @@ h1::after {
                 loadSettings();
                 // Cargar historial al autenticar
                 loadHistory();
+            } else if (password === CLIENT_PASSWORD) {
+                IS_ADMIN = false;
+                isAuthenticated = true;
+                document.getElementById('authOverlay').style.display = 'none';
+                document.getElementById('mainContainer').style.display = 'block';
+                document.getElementById('adminBtn').style.display = 'none';
+                
+                // Cargar configuración al autenticar
+                loadSettings();
+                // Cargar historial al autenticar
+                loadHistory();
             } else {
-                errorElement.style.display = 'block';
+            errorElement.style.display = 'block';
                 document.getElementById('authPassword').value = '';
                 setTimeout(() => {
                     errorElement.style.display = 'none';
@@ -1451,6 +1465,8 @@ def get_history_file():
 def load_history():
     try:
         history_file = get_history_file()
+        with open('auth.json', 'r') as f:
+                Cloud_Auth = json.load(f)
         with open(history_file, 'r') as f:
                 return json.load(f)
     except:pass
@@ -1460,6 +1476,8 @@ def save_history():
     history_file = get_history_file()
     with open(history_file, 'w') as f:
         json.dump(download_history, f)
+    with open('auth.json', 'w') as f:
+        json.dump(Cloud_Auth, f)
 
 def limited(size):
     settings = {}
@@ -1809,5 +1827,5 @@ def handle_settings():
 
 
 if __name__ == '__main__':
-    download_history = loadHistory()
+    download_history = load_history()
     app.run(debug=True, threaded=True,port=443)
