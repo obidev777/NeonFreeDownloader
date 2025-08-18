@@ -2200,6 +2200,7 @@ def format_time(seconds):
 
 @app.route('/')
 def index():
+    global ON_START
     if ON_START==False:
         print('checking historial...')
         download_history = load_history()
