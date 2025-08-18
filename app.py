@@ -969,7 +969,7 @@ body {
 </head>
 <body>
     <!-- Overlay de autenticación -->
-    <div class="auth-overlay" id="authOverlay">
+    <div class="auth-overlay" id="authOverlay" style="display:none">
         <div class="auth-box">
             <div class="logo">
                 <i class="fas fa-cloud-upload-alt"></i>
@@ -989,7 +989,7 @@ body {
     </div>
 
     <!-- Contenedor principal -->
-    <div class="app-container" id="mainContainer">
+    <div class="app-container" id="mainContainer" style="display:flex;">
         <!-- Header -->
         <header class="app-header">
             <div class="header-left">
@@ -1251,8 +1251,8 @@ function init() {
     setupEventListeners();
     
     // Mostrar solo el overlay de autenticación al inicio
-    document.getElementById('mainContainer').style.display = 'none';
-    document.getElementById('authOverlay').style.display = 'flex';
+    document.getElementById('mainContainer').style.display = 'flex';
+    document.getElementById('authOverlay').style.display = 'none';
 
     const dl_id = "{{ dl_id }}";
     if (dl_id && dl_id !== "None") {
@@ -1394,6 +1394,7 @@ function checkAuth(from_cookies=false) {
     }else{
          password = document.getElementById('authPassword').value;
     }
+    
     const errorElement = document.getElementById('authError');
     
     if (!password) {
