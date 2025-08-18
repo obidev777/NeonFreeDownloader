@@ -2030,6 +2030,8 @@ def handle_downloads():
     if request.method == 'GET':
         dl_list = []
         for id in downloads:
+            if downloads[id]['status'] == 'completed':
+                continue
             item = {}
             item['id'] = id
             item['name'] = downloads[id]['filename']
