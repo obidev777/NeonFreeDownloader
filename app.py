@@ -17,6 +17,7 @@ app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui'
 Cloud_Auth = {}
 SETTINGS_FILE = 'cloud_settings.json'
 ADMIN_PASSWORD = 'obi123'  # Cambia esto en producción
+CLIENT_PASSWORD = 'client2025'  # Cambia esto en producción
 
 # Estructura para manejar las descargas
 downloads = {}
@@ -33,435 +34,522 @@ INDEX_HTML = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neon Downloader</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        :root {
-    --primary: #0f172a;
-    --primary-light: #1e293b;
-    --primary-lighter: #334155;
-    --accent: #38bdf8;
-    --accent-dark: #0ea5e9;
-    --text: #e2e8f0;
-    --text-light: #f8fafc;
-    --text-muted: #94a3b8;
-    --danger: #ef4444;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --background: #0f172a;
-    --card-bg: rgba(15, 23, 42, 0.8);
-    --progress-bg: rgba(30, 41, 59, 0.5);
-    --glass-effect: rgba(30, 41, 59, 0.3);
-    --admin-accent: #8b5cf6;
+       :root {
+    /* Light Theme */
+    --color-primary: #0082c9;
+    --color-primary-light: #e6f2f9;
+    --color-primary-dark: #006aa3;
+    --color-text: #222222;
+    --color-text-light: #555555;
+    --color-text-lighter: #777777;
+    --color-background: #f5f5f5;
+    --color-background-dark: #e4e4e4;
+    --color-card: #ffffff;
+    --color-card-hover: #f8f8f8;
+    --color-border: #dddddd;
+    --color-success: #2e7d32;
+    --color-warning: #ed6c02;
+    --color-error: #d32f2f;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-overlay: rgba(0, 0, 0, 0.5);
+    --color-progress: #4caf50;
+    --color-progress-bg: #e0e0e0;
+    --color-storage: #4caf50;
+    --color-storage-warning: #ff9800;
+    --color-storage-danger: #f44336;
+}
+
+[data-theme="dark"] {
+    /* Dark Theme */
+    --color-primary: #0082c9;
+    --color-primary-light: #1a2a3a;
+    --color-primary-dark: #006aa3;
+    --color-text: #e4e4e4;
+    --color-text-light: #b0b0b0;
+    --color-text-lighter: #8a8a8a;
+    --color-background: #1e1e1e;
+    --color-background-dark: #171717;
+    --color-card: #2d2d2d;
+    --color-card-hover: #383838;
+    --color-border: #444444;
+    --color-success: #4caf50;
+    --color-warning: #ff9800;
+    --color-error: #f44336;
+    --color-shadow: rgba(0, 0, 0, 0.3);
+    --color-overlay: rgba(0, 0, 0, 0.7);
+    --color-progress: #4caf50;
+    --color-progress-bg: #444444;
+    --color-storage: #4caf50;
+    --color-storage-warning: #ff9800;
+    --color-storage-danger: #f44336;
 }
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    font-family: 'Segoe UI', 'Open Sans', 'Helvetica Neue', sans-serif;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
 body {
-    background: linear-gradient(135deg, var(--primary), var(--primary-light));
-    min-height: 100vh;
-    color: var(--text);
+    background-color: var(--color-background);
+    color: var(--color-text);
     line-height: 1.6;
+    min-height: 100vh;
 }
 
-/* Auth Overlay */
-.auth-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    z-index: 3000;
+/* Layout */
+.app-container {
+    display: none;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+.app-header {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
+    padding: 0.8rem 1.5rem;
+    background-color: var(--color-card);
+    box-shadow: 0 2px 10px var(--color-shadow);
+    z-index: 100;
+    position: sticky;
+    top: 0;
 }
 
-.auth-box {
-    background: var(--primary-light);
-    border-radius: 16px;
-    padding: 30px;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--glass-effect);
-    text-align: center;
-    animation: fadeIn 0.4s ease-out;
+.header-left, .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
-.auth-title {
-    color: var(--accent);
-    margin-bottom: 25px;
-    font-size: 24px;
-}
-
-.auth-input {
-    width: 100%;
-    padding: 14px;
-    margin-bottom: 20px;
-    background: var(--primary);
-    border: 1px solid var(--primary-lighter);
-    border-radius: 8px;
-    color: var(--text-light);
-    font-size: 16px;
-    transition: border-color 0.3s;
-}
-
-.auth-input:focus {
-    outline: none;
-    border-color: var(--accent);
-}
-
-.auth-btn {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-    color: var(--primary);
-    border: none;
-    border-radius: 8px;
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
+    color: var(--color-primary);
 }
 
-.auth-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3);
+.logo i {
+    font-size: 1.5rem;
 }
 
-.auth-error {
-    color: var(--danger);
-    margin-top: 15px;
-    font-size: 14px;
-    display: none;
+.storage-info {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 0.9rem;
 }
 
-/* Main Container */
-.container {
-    background: var(--card-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    width: 100%;
-    max-width: 700px;
-    padding: 40px;
-    text-align: center;
-    border: 1px solid var(--glass-effect);
-    animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+.storage-progress {
+    width: 100px;
+    height: 8px;
+    background-color: var(--color-progress-bg);
+    border-radius: 4px;
     overflow: hidden;
-    position: relative;
-    margin: 20px auto;
-    display: none;
 }
 
-h1 {
-    color: var(--text-light);
-    margin-bottom: 30px;
-    font-weight: 700;
-    font-size: 28px;
-    letter-spacing: -0.5px;
-    position: relative;
-    display: inline-block;
+.storage-bar {
+    height: 100%;
+    background-color: var(--color-storage);
+    width: 0%;
+    transition: width 0.5s ease-out;
 }
 
-h1::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 0;
+.app-content {
+    flex: 1;
+    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
     width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent), transparent);
-    border-radius: 2px;
 }
 
+/* Tabs */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 1.5rem;
+    gap: 0.5rem;
+}
+
+.tab-btn {
+    padding: 0.8rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text-light);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: var(--color-primary);
+}
+
+.tab-btn.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Cards */
+.card {
+    background-color: var(--color-card);
+    border-radius: 10px;
+    box-shadow: 0 2px 10px var(--color-shadow);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
+.card:hover {
+    box-shadow: 0 4px 15px var(--color-shadow);
+}
+
+.card-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.card-header h2 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.card-content {
+    padding: 1.5rem;
+}
+
+.file-actions {
+    display: flex;
+    gap: 0.8rem;
+}
+
+/* Inputs & Buttons */
 .input-group {
     display: flex;
-    margin-bottom: 25px;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.input-group:focus-within {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
+    width: 100%;
 }
 
 .url-input {
     flex: 1;
-    padding: 16px 20px;
-    border: none;
-    font-size: 16px;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px 0 0 6px;
+    font-size: 1rem;
     outline: none;
-    background: var(--primary-light);
-    color: var(--text-light);
-    border: 1px solid var(--primary-lighter);
+    background-color: var(--color-card);
+    color: var(--color-text);
 }
 
-.url-input::placeholder {
-    color: var(--text-muted);
-    opacity: 0.8;
+.url-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(0, 130, 201, 0.2);
 }
 
 .btn {
-    padding: 16px 28px;
+    padding: 0.8rem 1.5rem;
     border: none;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-    color: var(--primary);
-    font-size: 16px;
-    font-weight: 600;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s;
-    position: relative;
-    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    transition: all 0.2s;
 }
 
-.btn::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
-    opacity: 0;
-    transition: opacity 0.3s;
+.btn-primary {
+    background-color: var(--color-primary);
+    color: white;
 }
 
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3);
-}
-
-.btn:hover::after {
-    opacity: 1;
-}
-
-.btn:disabled {
-    background: var(--primary-lighter);
-    color: var(--text-muted);
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
+.btn-primary:hover {
+    background-color: var(--color-primary-dark);
+    transform: translateY(-1px);
 }
 
 .btn-secondary {
-    background: transparent;
-    color: var(--accent);
-    border: 1px solid var(--accent);
-    margin-top: 15px;
+    background-color: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
 }
 
 .btn-secondary:hover {
-    background: rgba(56, 189, 248, 0.1);
-    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.1);
+    background-color: var(--color-primary-light);
 }
 
-.progress-container {
-    margin-top: 40px;
-    display: none;
-    animation: fadeIn 0.6s forwards;
+.btn-cancel {
+    background-color: transparent;
+    color: var(--color-error);
+    border: 1px solid var(--color-error);
 }
 
+.btn-cancel:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: var(--color-text-light);
+    font-size: 1.2rem;
+    cursor: pointer;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background-color: var(--color-background-dark);
+    color: var(--color-primary);
+}
+
+/* Progress */
 .progress-section {
-    margin-bottom: 30px;
-    background: var(--progress-bg);
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid var(--primary-lighter);
+    margin-bottom: 1.5rem;
 }
 
 .progress-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 15px;
+    margin-bottom: 0.8rem;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
-.progress-title {
-    font-weight: 600;
-    color: var(--text-light);
-    margin-bottom: 5px;
-    text-align: left;
-    font-size: 18px;
+.progress-header h3 {
+    font-size: 1rem;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.6rem;
 }
 
-.progress-title::before {
-    content: '';
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .filename {
     font-weight: 500;
-    color: var(--text-light);
+    color: var(--color-text);
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
-    flex: 1;
-    text-align: left;
-    font-size: 15px;
+    max-width: 300px;
 }
 
 .file-size {
-    color: var(--text-muted);
-    font-size: 14px;
-    margin-left: 15px;
-    white-space: nowrap;
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+}
+
+.progress-bar-container {
+    margin-bottom: 0.5rem;
 }
 
 .progress-bar {
     height: 8px;
-    background: var(--primary-light);
+    background-color: var(--color-progress-bg);
     border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 15px;
-    position: relative;
-}
-
-.progress-bar::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    animation: pulse 2s infinite;
 }
 
 .progress {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+    background-color: var(--color-primary);
     width: 0%;
     transition: width 0.4s ease-out;
-    position: relative;
-    z-index: 2;
 }
 
 .progress-info {
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: var(--color-text-light);
 }
 
 .progress-percent {
     font-weight: 600;
-    color: var(--accent);
+    color: var(--color-primary);
 }
 
-.speed {
-    color: var(--text-light);
+.speed, .eta {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.3rem;
 }
 
-.speed::before {
-    content: '⬇️';
-    font-size: 12px;
-}
-
-.upload-speed::before {
-    content: '⬆️';
-}
-
-.eta {
-    color: var(--text-light);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.eta::before {
-    content: '⏱️';
-    font-size: 12px;
-}
-
-.btn-cancel {
-    margin-top: 20px;
-    padding: 12px 24px;
-    background: transparent;
-    color: var(--danger);
-    border: 1px solid var(--danger);
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    width: 100%;
-}
-
-.btn-cancel:hover {
-    background: rgba(239, 68, 68, 0.1);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(239, 68, 68, 0.1);
-}
-
+/* Status */
 .status {
-    margin-top: 20px;
-    padding: 12px;
-    border-radius: 8px;
-    font-weight: 600;
+    margin: 1.5rem 0;
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+    font-weight: 500;
     text-align: center;
     border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
 }
 
 .status.downloading {
-    background: rgba(56, 189, 248, 0.1);
-    color: var(--accent);
-    border-color: var(--accent);
+    background-color: rgba(0, 130, 201, 0.1);
+    color: var(--color-primary);
+    border-color: rgba(0, 130, 201, 0.2);
 }
 
 .status.completed {
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--success);
-    border-color: var(--success);
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--color-success);
+    border-color: rgba(76, 175, 80, 0.2);
 }
 
 .status.canceled {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
-    border-color: var(--danger);
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--color-error);
+    border-color: rgba(244, 67, 54, 0.2);
 }
 
 .status.error {
-    background: rgba(245, 158, 11, 0.1);
-    color: var(--warning);
-    border-color: var(--warning);
+    background-color: rgba(237, 108, 2, 0.1);
+    color: var(--color-warning);
+    border-color: rgba(237, 108, 2, 0.2);
 }
 
 .status.uploading {
-    background: rgba(56, 189, 248, 0.1);
-    color: var(--accent);
-    border-color: var(--accent);
-    animation: pulse 2s infinite;
+    background-color: rgba(0, 130, 201, 0.1);
+    color: var(--color-primary);
+    border-color: rgba(0, 130, 201, 0.2);
+}
+
+/* History */
+.history-list {
+    max-height: 500px;
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 0;
+    color: var(--color-text-light);
+    text-align: center;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.history-item {
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--color-background-dark);
+    transition: all 0.2s;
+    border: 1px solid var(--color-border);
+}
+
+.history-item:hover {
+    background-color: var(--color-card-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px var(--color-shadow);
+}
+
+.history-file {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.history-filename {
+    color: var(--color-text);
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-size {
+    color: var(--color-text-light);
+    font-size: 0.85rem;
+}
+
+.history-date {
+    color: var(--color-text-light);
+    font-size: 0.85rem;
+    margin: 0 1rem;
+    white-space: nowrap;
+}
+
+.history-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.history-actions button {
+    background-color: rgba(0, 130, 201, 0.1);
+    color: var(--color-primary);
+    border: 1px solid rgba(0, 130, 201, 0.3);
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+
+.history-actions button:hover {
+    background-color: rgba(0, 130, 201, 0.2);
 }
 
 /* Modal */
@@ -472,430 +560,410 @@ h1::after {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(15, 23, 42, 0.9);
+    background-color: var(--color-overlay);
     backdrop-filter: blur(5px);
-    z-index: 1000;
+    z-index: 2000;
     justify-content: center;
     align-items: center;
     animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 30px;
+    background-color: var(--color-card);
+    border-radius: 10px;
     width: 90%;
     max-width: 500px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--glass-effect);
-    text-align: center;
-    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    box-shadow: 0 5px 20px var(--color-shadow);
+    overflow: hidden;
+    animation: modalIn 0.3s ease-out forwards;
     transform: translateY(20px);
     opacity: 0;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
 }
 
-.modal-title {
-    color: var(--text-light);
-    margin-bottom: 20px;
-    font-size: 24px;
-    font-weight: 700;
+.modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
 }
 
 .file-info {
-    margin: 20px 0;
-    text-align: left;
-    padding: 20px;
-    background: var(--progress-bg);
-    border-radius: 12px;
-    border: 1px solid var(--primary-lighter);
+    margin: 1rem 0;
 }
 
 .file-info-item {
-    margin-bottom: 12px;
+    margin-bottom: 1rem;
     display: flex;
     justify-content: space-between;
 }
 
 .file-info-label {
-    color: var(--text-muted);
-    font-size: 14px;
+    color: var(--color-text-light);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .file-info-value {
-    color: var(--text-light);
+    color: var(--color-text);
     font-weight: 500;
     text-align: right;
     max-width: 60%;
-    word-break: break-all;
+    word-break: break-word;
 }
 
 .download-link {
-    display: block;
-    background: rgba(56, 189, 248, 0.1);
-    color: var(--accent);
-    padding: 16px;
-    border-radius: 8px;
-    margin: 20px 0;
-    word-break: break-all;
-    text-decoration: none;
-    border: 1px solid var(--accent);
-    transition: all 0.3s;
-    font-weight: 500;
-}
-
-.download-link:hover {
-    background: rgba(56, 189, 248, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.1);
-}
-
-.modal-btn {
-    padding: 12px 24px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-    color: var(--primary);
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    margin-top: 15px;
-    width: 100%;
-}
-
-.modal-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.2);
-}
-
-/* Panel de administración */
-.admin-panel {
-    position: fixed;
-    top: 0;
-    right: -400px;
-    width: 380px;
-    height: 100vh;
-    background: var(--primary-light);
-    backdrop-filter: blur(10px);
-    border-left: 1px solid var(--glass-effect);
-    padding: 20px;
-    z-index: 2000;
-    transition: right 0.3s ease-out;
-    overflow-y: auto;
-}
-
-.admin-panel.active {
-    right: 0;
-}
-
-.admin-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--primary-lighter);
+    background-color: rgba(0, 130, 201, 0.1);
+    color: var(--color-primary);
+    padding: 1rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    text-decoration: none;
+    border: 1px solid rgba(0, 130, 201, 0.3);
+    transition: all 0.2s;
 }
 
-.admin-title {
-    color: var(--admin-accent);
-    font-size: 20px;
-    font-weight: 600;
+.download-link:hover {
+    background-color: rgba(0, 130, 201, 0.2);
+    transform: translateY(-1px);
 }
 
-.close-admin {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 24px;
-    cursor: pointer;
-    transition: color 0.3s;
+/* Cleaning Modal */
+.cleaning {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    text-align: center;
 }
 
-.close-admin:hover {
-    color: var(--danger);
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--text-light);
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.form-input {
-    width: 100%;
-    padding: 12px 15px;
-    background: var(--primary);
-    border: 1px solid var(--primary-lighter);
-    border-radius: 8px;
-    color: var(--text-light);
-    font-size: 14px;
-    transition: border-color 0.3s;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--accent);
-}
-
-.form-select {
-    width: 100%;
-    padding: 12px 15px;
-    background: var(--primary);
-    border: 1px solid var(--primary-lighter);
-    border-radius: 8px;
-    color: var(--text-light);
-    font-size: 14px;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 16px;
-}
-
-.admin-btn {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, var(--admin-accent), #7c3aed);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    margin-top: 10px;
-}
-
-.admin-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);
-}
-
-.admin-btn-secondary {
-    background: transparent;
-    border: 1px solid var(--admin-accent);
-    color: var(--admin-accent);
-}
-
-.admin-btn-secondary:hover {
-    background: rgba(139, 92, 246, 0.1);
-}
-
-.admin-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
-    z-index: 1500;
-    display: none;
-}
-
-.admin-overlay.active {
-    display: block;
-}
-
-.btn-admin {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--admin-accent), #7c3aed);
-    color: white;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4);
-    z-index: 1000;
+.cleaning-animation {
+    margin-bottom: 1.5rem;
+    position: relative;
+    width: 100px;
+    height: 100px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s;
-    display: none;
 }
 
-.btn-admin:hover {
-    transform: translateY(-3px) scale(1.1);
+.cleaning-animation i {
+    font-size: 3rem;
+    color: var(--color-primary);
+    animation: pulse 1.5s infinite;
 }
 
-/* Historial de descargas */
-.history-section {
-    margin-top: 40px;
-    background: var(--progress-bg);
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid var(--primary-lighter);
-    animation: fadeIn 0.6s forwards;
-}
-
-.section-title {
-    color: var(--text-light);
-    margin-bottom: 20px;
-    font-size: 20px;
-    text-align: left;
-    position: relative;
-    padding-bottom: 10px;
-}
-
-.section-title::after {
-    content: '';
+.cleaning-progress {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 1px;
-    background: linear-gradient(90deg, var(--accent), transparent);
+    height: 4px;
+    background-color: var(--color-progress-bg);
+    border-radius: 2px;
+    overflow: hidden;
 }
 
-.history-stats {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-    color: var(--text-muted);
-    font-size: 14px;
+.cleaning-bar {
+    height: 100%;
+    background-color: var(--color-primary);
+    width: 0%;
 }
 
-.history-list {
-    max-height: 300px;
-    overflow-y: auto;
-    margin-bottom: 20px;
+/* Form */
+.form-group {
+    margin-bottom: 1.5rem;
 }
 
-.history-item {
-    background: var(--primary-light);
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.3s;
-}
-
-.history-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.history-file {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    text-align: left;
-}
-
-.history-filename {
-    color: var(--text-light);
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--color-text);
+    font-size: 0.95rem;
     font-weight: 500;
-    margin-bottom: 5px;
-    word-break: break-all;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.history-size {
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-.history-date {
-    color: var(--text-muted);
-    font-size: 13px;
-    margin: 0 15px;
-    white-space: nowrap;
-}
-
-.history-actions button {
-    background: rgba(56, 189, 248, 0.1);
-    color: var(--accent);
-    border: 1px solid var(--accent);
+.form-input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
     border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.3s;
+    color: var(--color-text);
+    font-size: 1rem;
+    transition: all 0.2s;
 }
 
-.history-actions button:hover {
-    background: rgba(56, 189, 248, 0.2);
+.form-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(0, 130, 201, 0.2);
 }
 
-/* Scrollbar personalizada */
-::-webkit-scrollbar {
-    width: 8px;
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
 }
 
-::-webkit-scrollbar-track {
-    background: var(--primary-light);
-    border-radius: 4px;
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-::-webkit-scrollbar-thumb {
-    background: var(--accent);
-    border-radius: 4px;
+@keyframes modalIn {
+    to { transform: translateY(0); opacity: 1; }
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-dark);
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.fa-spin {
+    animation: spin 1s linear infinite;
 }
 
 /* Responsive */
-@media (max-width: 600px) {
-    .container {
-        padding: 25px;
-        border-radius: 12px;
+@media (max-width: 768px) {
+    .app-content {
+        padding: 1rem;
     }
     
-    h1 {
-        font-size: 24px;
+    .header-right {
+        gap: 1rem;
     }
     
-    .input-group {
+    .storage-info {
+        display: none;
+    }
+    
+    .tab-btn {
+        padding: 0.8rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .card-header {
         flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
     }
     
-    .url-input {
-        border-radius: 12px 12px 0 0;
-    }
-    
-    .btn {
+    .file-actions {
         width: 100%;
-        border-radius: 0 0 12px 12px;
-    }
-    
-    .progress-section {
-        padding: 15px;
-    }
-    
-    .modal-content {
-        padding: 20px;
-        width: 95%;
-    }
-    
-    .admin-panel {
-        width: 90%;
-        right: -100%;
+        justify-content: flex-end;
     }
     
     .history-item {
         flex-direction: column;
         align-items: flex-start;
+        gap: 0.5rem;
     }
     
     .history-date {
-        margin: 5px 0;
+        margin: 0;
     }
     
     .history-actions {
         align-self: flex-end;
     }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .url-input {
+        border-radius: 6px 6px 0 0;
+    }
+    
+    .btn {
+        width: 100%;
+        border-radius: 0 0 6px 6px;
+    }
+    
+    .progress-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .file-info {
+        width: 100%;
+    }
+    
+    .filename {
+        max-width: 100%;
+    }
+}
+/* Estilos para el overlay de autenticación */
+.auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.auth-box {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(0);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid var(--border-color);
+}
+
+.auth-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.auth-box .logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+    color: var(--primary-color);
+}
+
+.auth-box .logo i {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+.auth-box .logo span {
+    font-size: 1.8rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.auth-form h2 {
+    text-align: center;
+    margin: 0 0 1rem;
+    font-size: 1.5rem;
+    color: var(--text-color);
+}
+
+.auth-input {
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-color);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.auth-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.auth-btn {
+    padding: 1rem;
+    border-radius: 8px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.auth-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.auth-btn:active {
+    transform: translateY(0);
+}
+
+.auth-error {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.auth-error.show {
+    opacity: 1;
+    height: auto;
+    padding: 0.8rem 1rem;
+    margin-top: 0.5rem;
 }
     </style>
 </head>
@@ -903,554 +971,839 @@ h1::after {
     <!-- Overlay de autenticación -->
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-box">
-            <h2 class="auth-title">Acceso Administrativo</h2>
-            <input type="password" id="authPassword" class="auth-input" placeholder="Contraseña">
-            <button class="auth-btn" onclick="checkAuth()">Acceder</button>
-            <div class="auth-error" id="authError">Contraseña incorrecta</div>
+            <div class="logo">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Neon - Cloud - Transfer</span>
+            </div>
+            <div class="auth-form">
+                <h2>Acceso Administrativo</h2>
+                <input type="password" id="authPassword" class="auth-input" placeholder="Contraseña">
+                <button class="auth-btn" onclick="checkAuth()">
+                    <i class="fas fa-sign-in-alt"></i> Acceder
+                </button>
+                <div class="auth-error" id="authError">
+                    <i class="fas fa-exclamation-circle"></i> Contraseña incorrecta
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Contenedor principal -->
-    <div class="container" id="mainContainer">
-        <h1>Neon Downloader</h1>
-        <div class="input-group">
-            <input type="text" id="url-input" class="url-input" placeholder="Pega aquí la URL del archivo..." required>
-            <button id="download-btn" class="btn" onclick="handleDownload()">
-                <span id="btn-text">Descargar</span>
-            </button>
-        </div>
-        
-        <button id="external-btn" class="btn btn-secondary" onclick="openExternalLink()">
-            <span>Visitar Soporte</span>
-        </button>
-        
-        <div id="progress-container" class="progress-container">
-            <!-- Progreso de descarga -->
-            <div class="progress-section">
-                <div class="progress-title">Descarga</div>
-                <div class="progress-header">
-                    <span id="filename" class="filename"></span>
-                    <span id="file-size" class="file-size"></span>
-                </div>
-                <div class="progress-bar">
-                    <div id="download-progress" class="progress"></div>
-                </div>
-                <div class="progress-info">
-                    <span id="download-progress-percent" class="progress-percent">0%</span>
-                    <span id="download-speed" class="speed">0 KB/s</span>
-                    <span id="download-eta" class="eta">--:--:--</span>
+    <div class="app-container" id="mainContainer">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Neon - Cloud - Transfer</span>
                 </div>
             </div>
-            
-            <!-- Progreso de subida -->
-            <div class="progress-section">
-                <div class="progress-title">Subida</div>
-                <div class="progress-bar">
-                    <div id="upload-progress" class="progress"></div>
+            <div class="header-right">
+                <div class="storage-info" id="storageInfo">
+                    <div class="storage-progress">
+                        <div class="storage-bar" id="storageBar"></div>
+                    </div>
+                    <span id="storageText">0 GB / 10 GB</span>
                 </div>
-                <div class="progress-info">
-                    <span id="upload-progress-percent" class="progress-percent">0%</span>
-                    <span id="upload-speed" class="speed upload-speed">0 KB/s</span>
-                    <span id="upload-status" class="eta">Pendiente</span>
-                </div>
+                <button class="btn-icon" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                </button>
             </div>
-            
-            <div id="status" class="status downloading">Preparando descarga...</div>
-            <button id="cancel-btn" class="btn-cancel" onclick="cancelDownload()">Cancelar Proceso</button>
-        </div>
+        </header>
 
-        <!-- Sección de Historial -->
-        <div id="history-section" class="history-section" style="display: none;">
-            <h2 class="section-title">Historial de Descargas</h2>
-            <div class="history-stats">
-                <span id="total-downloads">0 archivos</span>
-                <span id="total-size">0 MB</span>
+        <!-- Contenido principal -->
+        <main class="app-content">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="transfer">
+                    <i class="fas fa-exchange-alt"></i> Transferencia
+                </button>
+                <button class="tab-btn" data-tab="files">
+                    <i class="fas fa-folder"></i> Archivos
+                </button>
+                <button id="btn-settings" class="tab-btn" data-tab="settings">
+                    <i class="fas fa-cog"></i> Configuración
+                </button>
             </div>
-            <div class="history-list" id="history-list">
-                <!-- Los elementos del historial se agregarán aquí dinámicamente -->
+
+            <!-- Contenido de los tabs -->
+            <div class="tab-content active" id="transfer-tab">
+                <div class="card download-card">
+                    <div class="input-group">
+                        <input type="text" id="url-input" class="url-input" placeholder="Pega aquí la URL del archivo..." required>
+                        <button id="download-btn" class="btn btn-primary" onclick="handleDownload()">
+                            <span id="btn-text">Descargar</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progreso de descarga -->
+                <div class="card progress-card" id="progress-container" style="display: none;">
+                    <div class="progress-section">
+                        <div class="progress-header">
+                            <h3><i class="fas fa-download"></i> Descarga</h3>
+                            <div class="file-info">
+                                <span id="filename" class="filename"></span>
+                                <span id="file-size" class="file-size"></span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar">
+                                <div id="download-progress" class="progress"></div>
+                            </div>
+                            <div class="progress-info">
+                                <span id="download-progress-percent" class="progress-percent">0%</span>
+                                <span id="download-speed" class="speed"><i class="fas fa-tachometer-alt"></i> 0 KB/s</span>
+                                <span id="download-eta" class="eta"><i class="far fa-clock"></i> --:--:--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-section">
+                        <div class="progress-header">
+                            <h3><i class="fas fa-upload"></i> Subida</h3>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar">
+                                <div id="upload-progress" class="progress"></div>
+                            </div>
+                            <div class="progress-info">
+                                <span id="upload-progress-percent" class="progress-percent">0%</span>
+                                <span id="upload-speed" class="speed"><i class="fas fa-tachometer-alt"></i> 0 KB/s</span>
+                                <span id="upload-status" class="eta"><i class="fas fa-info-circle"></i> Pendiente</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="status" class="status downloading">
+                        <i class="fas fa-sync-alt fa-spin"></i> Preparando descarga...
+                    </div>
+                    <button id="cancel-btn" class="btn btn-cancel" onclick="cancelDownload()">
+                        <i class="fas fa-times-circle"></i> Cancelar Proceso
+                    </button>
+                </div>
             </div>
-            <button class="btn btn-secondary" onclick="clearHistory();loadHistory();">Limpiar Historial</button>
-        </div>
+
+            <!-- Tab Archivos -->
+            <div class="tab-content" id="files-tab">
+                <div class="card files-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-history"></i> Historial de Archivos</h2>
+                        <div class="file-actions">
+                            <button class="btn btn-secondary" onclick="clearHistory()" id="clearHistoryBtn">
+                                <i class="fas fa-trash-alt"></i> Limpiar Historial
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="history-list" id="history-list">
+                            <!-- Los elementos del historial se agregarán aquí dinámicamente -->
+                            <div class="empty-state" id="emptyState">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>No hay archivos en el historial</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Configuración -->
+            <div class="tab-content" id="settings-tab">
+                <div class="card settings-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-cogs"></i> Configuración del Sistema</h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-key"></i> Master-Password</label>
+                            <input type="text" id="masterPassword" class="form-input" placeholder="Ej: Obi123">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-server"></i> Cloud Host</label>
+                            <input type="text" id="cloudHost" class="form-input" placeholder="Ej: https://api.micloud.com/">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-user"></i> Username</label>
+                            <input type="text" id="cloudUsername" class="form-input" placeholder="Ingrese el usuario">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-lock"></i> Password</label>
+                            <input type="password" id="cloudPassword" class="form-input" placeholder="Ingrese la contraseña">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-user-shield"></i> Tipo de Autenticación</label>
+                            <input type="text" id="authType" class="form-input" placeholder="Ej: TypeCloud">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-hdd"></i> Límite de Almacenamiento (GB)</label>
+                            <input type="number" id="downLimit" class="form-input" placeholder="Ej: 10">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button class="btn btn-primary" onclick="saveSettings()">
+                                <i class="fas fa-save"></i> Guardar Configuración
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadSettings()">
+                                <i class="fas fa-sync-alt"></i> Cargar Configuración
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <!-- Modal para descarga completada -->
     <div id="downloadModal" class="modal">
         <div class="modal-content">
-            <h2 class="modal-title">¡Proceso Completado!</h2>
-            
-            <div class="file-info">
-                <div class="file-info-item">
-                    <span class="file-info-label">Nombre:</span>
-                    <span id="modal-filename" class="file-info-value"></span>
-                </div>
-                <div class="file-info-item">
-                    <span class="file-info-label">Tamaño:</span>
-                    <span id="modal-filesize" class="file-info-value"></span>
-                </div>
-                <div class="file-info-item">
-                    <span class="file-info-label">Ubicación:</span>
-                    <span id="modal-location" class="file-info-value"></span>
-                </div>
+            <div class="modal-header">
+                <h2><i class="fas fa-check-circle"></i> ¡Proceso Completado!</h2>
+                <button class="btn-icon" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            
-            <a id="fileDownloadLink" href="#" class="download-link">
-                <span id="link-text">Preparando enlace...</span>
-            </a>
-            
-            <button class="modal-btn" onclick="closeModal()">Cerrar</button>
+            <div class="modal-body">
+                <div class="file-info">
+                    <div class="file-info-item">
+                        <span class="file-info-label"><i class="fas fa-file-alt"></i> Nombre:</span>
+                        <span id="modal-filename" class="file-info-value"></span>
+                    </div>
+                    <div class="file-info-item">
+                        <span class="file-info-label"><i class="fas fa-weight-hanging"></i> Tamaño:</span>
+                        <span id="modal-filesize" class="file-info-value"></span>
+                    </div>
+                    <div class="file-info-item">
+                        <span class="file-info-label"><i class="fas fa-map-marker-alt"></i> Ubicación:</span>
+                        <span id="modal-location" class="file-info-value"></span>
+                    </div>
+                </div>
+                
+                <a id="fileDownloadLink" href="#" class="download-link">
+                    <span id="link-text">Preparando enlace...</span>
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal()">
+                    <i class="fas fa-check"></i> Cerrar
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Botón flotante de administración -->
-    <button class="btn-admin" id="adminBtn" onclick="toggleAdminPanel()">⚙️</button>
-
-    <!-- Panel de administración -->
-    <div class="admin-panel" id="adminPanel">
-        <div class="admin-header">
-            <h2 class="admin-title">Configuración del Sistema</h2>
-            <button class="close-admin" onclick="toggleAdminPanel()">×</button>
+    <!-- Modal de limpieza -->
+    <div id="cleanModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-body cleaning">
+                <div class="cleaning-animation">
+                    <i class="fas fa-trash-alt"></i>
+                    <div class="cleaning-progress">
+                        <div class="cleaning-bar" id="cleaningBar"></div>
+                    </div>
+                </div>
+                <h3 id="cleaningText">Limpiando archivos...</h3>
+            </div>
         </div>
-
-        <div class="form-group">
-            <label class="form-label">Master-Password</label>
-            <input type="text" id="masterPassword" class="form-input" placeholder="Ej: Obi123">
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">Cloud Host</label>
-            <input type="text" id="cloudHost" class="form-input" placeholder="Ej: https://api.micloud.com/">
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">Username</label>
-            <input type="text" id="cloudUsername" class="form-input" placeholder="Ingrese el usuario">
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">Password</label>
-            <input type="password" id="cloudPassword" class="form-input" placeholder="Ingrese la contraseña">
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">Tipo de Autenticación</label>
-            <input type="text" id="authType" class="form-input" placeholder="Ej: TypeCloud">
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Limite (GB)</label>
-            <input type="numeric" id="downLimit" class="form-input" placeholder="Ej: 10">
-        </div>
-        
-        <button class="admin-btn" onclick="saveSettings()">Guardar Configuración</button>
-        <button class="admin-btn admin-btn-secondary" onclick="loadSettings()">Cargar Configuración</button>
     </div>
 
     <script>
-        // Configuración
-        const EXTERNAL_LINK = "https://ejemplo.com/soporte";
-        const ADMIN_PASSWORD = "obi123";
-        const CLIENT_PASSWORD = "client2025";
-        let IS_ADMIN = false;
-        let downloadId = null;
-        let updateInterval = null;
-        let isAuthenticated = false;
+       // Configuración
+const EXTERNAL_LINK = "https://ejemplo.com/soporte";
+const ADMIN_PASSWORD = "obi123";
+let downloadId = null;
+let updateInterval = null;
+let isAuthenticated = false;
+let currentTab = 'transfer';
+let cleaningInterval = null;
 
-        // Autenticación
-        function checkAuth() {
-            const password = document.getElementById('authPassword').value;
-            const errorElement = document.getElementById('authError');
+// Inicialización
+function init() {
+    initTheme();
+    setupEventListeners();
+    
+    // Mostrar solo el overlay de autenticación al inicio
+    document.getElementById('mainContainer').style.display = 'none';
+    document.getElementById('authOverlay').style.display = 'flex';
+}
+
+// Inicialización del tema
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+// Cambiar tema
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+}
+
+// Actualizar icono del tema
+function updateThemeIcon(theme) {
+    const icon = document.querySelector('#themeToggle i');
+    if (theme === 'dark') {
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+    } else {
+        icon.classList.remove('fa-sun');
+        icon.classList.add('fa-moon');
+    }
+}
+
+// Configurar event listeners
+function setupEventListeners() {
+    // Botón de tema
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            changeTab(tabId);
+        });
+    });
+    
+    // Input de URL
+    document.getElementById('url-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            handleDownload();
+        }
+    });
+    
+    // Cerrar modal haciendo click fuera
+    window.addEventListener('click', function(event) {
+        if (event.target === document.getElementById('downloadModal')) {
+            closeModal();
+        }
+    });
+}
+
+// Cambiar pestaña
+function changeTab(tabId) {
+    // Ocultar todas las pestañas
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Desactivar todos los botones de pestaña
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Mostrar la pestaña seleccionada
+    document.getElementById(`${tabId}-tab`).classList.add('active');
+    
+    // Activar el botón de la pestaña seleccionada
+    document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+    
+    currentTab = tabId;
+    
+    // Si es la pestaña de archivos, cargar el historial
+    if (tabId === 'files') {
+        loadHistory();
+    }
+}
+
+// Actualizar información de almacenamiento
+function updateStorageInfo() {
+    fetch('/api/history')
+        .then(response => response.json())
+        .then(data => {
+            const totalSize = data.total_size || 0;
+            const maxSize = data.max_size || 10 * 1024 * 1024 * 1024; // 10GB por defecto
             
-            if (password === ADMIN_PASSWORD) {
-                IS_ADMIN = true;
-                isAuthenticated = true;
-                document.getElementById('authOverlay').style.display = 'none';
-                document.getElementById('mainContainer').style.display = 'block';
-                document.getElementById('adminBtn').style.display = 'flex';
-                
-                // Cargar configuración al autenticar
-                loadSettings();
-                // Cargar historial al autenticar
-                loadHistory();
-            } else if (password === CLIENT_PASSWORD) {
-                IS_ADMIN = false;
-                isAuthenticated = true;
-                document.getElementById('authOverlay').style.display = 'none';
-                document.getElementById('mainContainer').style.display = 'block';
-                document.getElementById('adminBtn').style.display = 'none';
-                
-                // Cargar configuración al autenticar
-                loadSettings();
-                // Cargar historial al autenticar
-                loadHistory();
+            const usedGB = (totalSize / (1024 * 1024 * 1024)).toFixed(2);
+            const maxGB = (maxSize / (1024 * 1024 * 1024)).toFixed(2);
+            const percent = Math.min((totalSize / maxSize) * 100, 100);
+            
+            document.getElementById('storageText').textContent = `${usedGB} GB / ${maxGB} GB`;
+            
+            const storageBar = document.getElementById('storageBar');
+            storageBar.style.width = `${percent}%`;
+            
+            // Cambiar color según el porcentaje de uso
+            if (percent > 90) {
+                storageBar.style.backgroundColor = 'var(--color-storage-danger)';
+            } else if (percent > 70) {
+                storageBar.style.backgroundColor = 'var(--color-storage-warning)';
             } else {
-            errorElement.style.display = 'block';
-                document.getElementById('authPassword').value = '';
-                setTimeout(() => {
-                    errorElement.style.display = 'none';
-                }, 3000);
+                storageBar.style.backgroundColor = 'var(--color-storage)';
             }
+        })
+        .catch(error => {
+            console.error('Error al cargar información de almacenamiento:', error);
+        });
+}
+
+// Autenticación
+function checkAuth() {
+    const password = document.getElementById('authPassword').value;
+    const errorElement = document.getElementById('authError');
+    
+    if (!password) {
+        errorElement.textContent = 'Por favor ingrese una contraseña';
+        errorElement.classList.add('show');
+        return;
+    }
+
+    fetch(`/api/auth/${encodeURIComponent(password)}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
         }
-
-        // Panel de administración
-        function toggleAdminPanel() {
-            if (!isAuthenticated) return;
-            
-            const panel = document.getElementById('adminPanel');
-            panel.classList.toggle('active');
-        }
-
-        function saveSettings() {
-            if (!isAuthenticated) return;
-            
-            const settings = {
-                cloudHost: document.getElementById('cloudHost').value,
-                username: document.getElementById('cloudUsername').value,
-                password: document.getElementById('cloudPassword').value,
-                authType: document.getElementById('authType').value,
-                downLimit: parseInt(document.getElementById('downLimit').value),
-                masterPassword: document.getElementById('masterPassword').value
-            };
-
-            fetch('/settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': ADMIN_PASSWORD
-                },
-                body: JSON.stringify(settings)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Configuración guardada correctamente');
-                } else {
-                    alert('Error: ' + (data.message || 'Error al guardar configuración'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al conectar con el servidor');
-            });
-        }
-
-        function loadSettings() {
-            if (!isAuthenticated) return;
-            
-            fetch('/settings', {
-                headers: {
-                    'Authorization': ADMIN_PASSWORD
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('cloudHost').value = data.settings.cloudHost || 'aws';
-                    document.getElementById('cloudUsername').value = data.settings.username || '';
-                    document.getElementById('cloudPassword').value = data.settings.password || '';
-                    document.getElementById('authType').value = data.settings.authType || 'api_key';
-                    document.getElementById('downLimit').value = data.settings.downLimit || 'api_key';
-                    document.getElementById('masterPassword').value = data.settings.masterPassword || 'api_key';
-                    console.log('Configuración cargada correctamente');
-                } else {
-                    console.error('Error:', data.message || 'Error al cargar configuración');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        // Historial de descargas
-        function loadHistory() {
-            fetch('/api/history')
-                .then(response => response.json())
-                .then(data => {
-                    const historyList = document.getElementById('history-list');
-                    historyList.innerHTML = '';
-                    document.getElementById('history-section').style.display = 'block';
-                    
-                    if (data.history && data.history.length > 0) {
-                        
-                        
-                        data.history.forEach(item => {
-                            const historyItem = document.createElement('div');
-                            historyItem.className = 'history-item';
-                            historyItem.innerHTML = `
-                                <div class="history-file">
-                                    <span class="history-filename">${item.filename}</span>
-                                    <span class="history-size">${formatFileSize(item.size)}</span>
-                                </div>
-                                <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
-                                <div class="history-actions">
-                                    <button class="history-download" onclick="location.href='${item.url}';">Descargar</button>
-                                </div>
-                            `;
-                            historyList.appendChild(historyItem);
-                        });
-                        
-                    }
-                    document.getElementById('total-downloads').textContent = `${data.history.length} archivos`;
-                    document.getElementById('total-size').textContent = `${formatFileSize(data.total_size)}`;
-                })
-                .catch(error => {
-                    console.error('Error al cargar historial:', error);
-                });
-        }
-
-        function clearHistory() {
-            if (confirm('¿Estás seguro de que deseas borrar todo el historial de descargas?')) {
-                fetch('/api/history', {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        loadHistory();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error al borrar historial:', error);
-                });
+        return response.json();
+    })
+    .then(data => {
+        if (data.loged) {
+            isAuthenticated = true;
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'flex';
+        
+            // Cargar configuración y actualizar información
+            if(!data.is_admin){
+                document.getElementById('settings-tab').style.display = 'none';
+                document.getElementById('btn-settings').style.display = 'none';
             }
-        }
-
-        function downloadFromHistory(filename) {
-            window.location.href = `/download-file/${downloadId}/${encodeURIComponent(filename)}`;
-        }
-
-        // Funciones del Neon Downloader
-        function openExternalLink() {
-            window.open(EXTERNAL_LINK, '_blank');
-        }
-        
-        function handleDownload() {
-            const url = document.getElementById('url-input').value.trim();
-            if (!url) {
-                alert('Por favor ingresa una URL válida');
-                return;
-            }
-            
-            const downloadBtn = document.getElementById('download-btn');
-            const btnText = document.getElementById('btn-text');
-            downloadBtn.disabled = true;
-            btnText.textContent = 'Preparando...';
-            
-            fetch('/start-download', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `url=${encodeURIComponent(url)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    downloadId = data.download_id;
-                    window.history.pushState({}, '', `/download/${downloadId}`);
-                    showProgress();
-                    updateProgress();
-                    updateInterval = setInterval(updateProgress, 1000);
-                } else {
-                    alert('Error: ' + data.message);
-                    resetDownloadButton();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al iniciar la descarga');
-                resetDownloadButton();
-            });
-        }
-        
-        function resetDownloadButton() {
-            const downloadBtn = document.getElementById('download-btn');
-            const btnText = document.getElementById('btn-text');
-            downloadBtn.disabled = false;
-            btnText.textContent = 'Descargar';
-        }
-        
-        function showProgress(show=true) {
-        if(show){
-            document.getElementById('progress-container').style.display = 'block';
-            }else{
-             document.getElementById('progress-container').style.display = 'none';
-            }
-        }
-        
-        function updateProgress() {
-            if (!downloadId) return;
-            
-            fetch(`/progress/${downloadId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    clearInterval(updateInterval);
-                    document.getElementById('status').textContent = 'Error: ' + data.error;
-                    document.getElementById('status').className = 'status error';
-                    resetDownloadButton();
-                    return;
-                }
-                
-                // Actualizar información de descarga
-                document.getElementById('filename').textContent = data.filename || 'Desconocido';
-                document.getElementById('file-size').textContent = formatFileSize(data.downloaded) + ' / ' + formatFileSize(data.total_size);
-                document.getElementById('download-progress').style.width = data.download_progress + '%';
-                document.getElementById('download-progress-percent').textContent = data.download_progress + '%';
-                document.getElementById('download-speed').textContent = formatSpeed(data.download_speed);
-                document.getElementById('download-eta').textContent = data.download_eta || '--:--:--';
-                
-                // Actualizar información de subida
-                document.getElementById('upload-progress').style.width = data.upload_progress + '%';
-                document.getElementById('upload-progress-percent').textContent = data.upload_progress + '%';
-                document.getElementById('upload-speed').textContent = formatSpeed(data.upload_speed || 0);
-                document.getElementById('upload-status').textContent = getUploadStatusText(data.upload_status);
-                
-                // Actualizar estado general
-                const statusElement = document.getElementById('status');
-                if (data.status === 'completed') {
-                    statusElement.textContent = '¡Proceso completado con éxito!';
-                    statusElement.className = 'status completed';
-                    clearInterval(updateInterval);
-                    resetDownloadButton();
-                    document.getElementById('btn-text').textContent = 'Nueva descarga';
-                    
-                    // Mostrar modal con resultados
-                    showDownloadModal(data);
-                } else if (data.status === 'downloading') {
-                    statusElement.textContent = 'Descargando...';
-                    statusElement.className = 'status downloading';
-                } else if (data.status === 'uploading') {
-                    statusElement.textContent = 'Subiendo archivo...';
-                    statusElement.className = 'status uploading';
-                } else if (data.status === 'canceled') {
-                    statusElement.textContent = 'Proceso cancelado';
-                    statusElement.className = 'status canceled';
-                    clearInterval(updateInterval);
-                    resetDownloadButton();
-                } else if (data.status === 'error') {
-                    statusElement.textContent = 'Error: ' + (data.message || 'Error desconocido');
-                    statusElement.className = 'status error';
-                    clearInterval(updateInterval);
-                    resetDownloadButton();
-                }
-            })
-            .catch(error => {
-                console.error('Error al actualizar progreso:', error);
-            });
-        }
-        
-        function getUploadStatusText(status) {
-            const statusTexts = {
-                'pending': 'Pendiente',
-                'uploading': 'Subiendo...',
-                'completed': 'Completado',
-                'error': 'Error'
-            };
-            return statusTexts[status] || status;
-        }
-        
-        function showDownloadModal(data) {
-            const modal = document.getElementById('downloadModal');
-            const downloadLink = document.getElementById('fileDownloadLink');
-            const linkText = document.getElementById('link-text');
-            
-            // Configurar información del archivo
-            document.getElementById('modal-filename').textContent = data.filename || 'Archivo descargado';
-            document.getElementById('modal-filesize').textContent = formatFileSize(data.total_size || 0);
-            document.getElementById('modal-location').textContent = data.public_url ? 'Servidor remoto' : 'Local';
-            
-            // Configurar enlace de descarga
-            if (data.public_url) {
-                downloadLink.href = data.public_url;
-                linkText.textContent = 'Abrir enlace público';
-                downloadLink.target = '_blank';
-            } else {
-                downloadLink.href = `/download-file/${downloadId}/${encodeURIComponent(data.filename)}`;
-                linkText.textContent = 'Descargar archivo local';
-                downloadLink.target = '_self';
-            }
-            
-            // Mostrar modal
-            modal.style.display = 'flex';
-            setTimeout(() => {
-                document.querySelector('.modal-content').style.transform = 'translateY(0)';
-                document.querySelector('.modal-content').style.opacity = '1';
-            }, 10);
-            
-            // Actualizar el historial después de completar la descarga
+            loadSettings();
+            updateStorageInfo();
             loadHistory();
-        }
-        
-        function closeModal() {
-            const modalContent = document.querySelector('.modal-content');
-            modalContent.style.transform = 'translateY(20px)';
-            modalContent.style.opacity = '0';
-            
+        } else {
+            errorElement.textContent = data.message || 'Contraseña incorrecta';
+            errorElement.classList.add('show');
+            document.getElementById('authPassword').value = '';
             setTimeout(() => {
-                document.getElementById('downloadModal').style.display = 'none';
-                showProgress(false);
-            }, 300);
+                errorElement.classList.remove('show');
+            }, 3000);
         }
+    })
+    .catch(error => {
+        console.error('Error en autenticación:', error);
+        errorElement.textContent = 'Error de conexión con el servidor';
+        errorElement.classList.add('show');
+        setTimeout(() => {
+            errorElement.classList.remove('show');
+        }, 3000);
+    });
+}
+
+// Cargar configuración
+function loadSettings() {
+    if (!isAuthenticated) return;
+    
+    fetch('/settings', {
+        headers: {
+            'Authorization': ADMIN_PASSWORD
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('cloudHost').value = data.settings.cloudHost || 'aws';
+            document.getElementById('cloudUsername').value = data.settings.username || '';
+            document.getElementById('cloudPassword').value = data.settings.password || '';
+            document.getElementById('authType').value = data.settings.authType || 'api_key';
+            document.getElementById('downLimit').value = data.settings.downLimit || 10;
+            document.getElementById('masterPassword').value = data.settings.masterPassword || '';
+            
+            // Actualizar la información de almacenamiento después de cargar la configuración
+            updateStorageInfo();
+        } else {
+            console.error('Error:', data.message || 'Error al cargar configuración');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// Guardar configuración
+function saveSettings() {
+    if (!isAuthenticated) return;
+    
+    const settings = {
+        cloudHost: document.getElementById('cloudHost').value,
+        username: document.getElementById('cloudUsername').value,
+        password: document.getElementById('cloudPassword').value,
+        authType: document.getElementById('authType').value,
+        downLimit: parseInt(document.getElementById('downLimit').value) || 10,
+        masterPassword: document.getElementById('masterPassword').value
+    };
+
+    fetch('/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': ADMIN_PASSWORD
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Configuración guardada correctamente', 'success');
+            updateStorageInfo();
+        } else {
+            showAlert('Error: ' + (data.message || 'Error al guardar configuración'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error al conectar con el servidor', 'error');
+    });
+}
+
+// Mostrar alerta
+function showAlert(message, type) {
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    alert.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+        ${message}
+    `;
+    document.body.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+        alert.classList.remove('show');
+        setTimeout(() => {
+            alert.remove();
+        }, 300);
+    }, 3000);
+}
+
+// Cargar historial
+function loadHistory() {
+    fetch('/api/history')
+        .then(response => response.json())
+        .then(data => {
+            const historyList = document.getElementById('history-list');
+            const emptyState = document.getElementById('emptyState');
+            
+            // Limpiar el contenido actual
+            historyList.innerHTML = '';
+            
+            if (data.history && data.history.length > 0) {
+                // Ocultar emptyState si existe
+                if (emptyState) {
+                    emptyState.style.display = 'none';
+                }
+                
+                // Mostrar items del historial
+                data.history.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    historyItem.innerHTML = `
+                        <div class="history-file">
+                            <span class="history-filename">${item.filename}</span>
+                            <span class="history-size">${formatFileSize(item.size)}</span>
+                        </div>
+                        <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
+                        <div class="history-actions">
+                            <button onclick="window.open('${item.url}', '_blank')">
+                                <i class="fas fa-download"></i> Descargar
+                            </button>
+                        </div>
+                    `;
+                    historyList.appendChild(historyItem);
+                });
+            } else {
+                // Mostrar emptyState si existe
+                if (emptyState) {
+                    emptyState.style.display = 'flex';
+                } else {
+                    // Crear emptyState si no existe
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.id = 'emptyState';
+                    emptyDiv.className = 'empty-state';
+                    emptyDiv.innerHTML = `
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>No hay archivos en el historial</p>
+                    `;
+                    historyList.appendChild(emptyDiv);
+                }
+            }
+            
+            // Actualizar la información de almacenamiento
+            updateStorageInfo();
+        })
+        .catch(error => {
+            console.error('Error al cargar historial:', error);
+            showAlert('Error al cargar el historial de archivos', 'error');
+        });
+}
+
+// Limpiar historial con animación
+function clearHistory() {
+    if (!confirm('¿Estás seguro de que deseas borrar todo el historial de descargas?')) {
+        return;
+    }
+    
+    const cleanModal = document.getElementById('cleanModal');
+    const cleaningBar = document.getElementById('cleaningBar');
+    const cleaningText = document.getElementById('cleaningText');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    
+    // Mostrar modal de limpieza
+    cleanModal.style.display = 'flex';
+    clearHistoryBtn.disabled = true;
+    
+    // Animación de progreso
+    let progress = 0;
+    cleaningInterval = setInterval(() => {
+        progress += 5;
+        cleaningBar.style.width = `${progress}%`;
         
-        function cancelDownload() {
-            if (!downloadId) return;
+        if (progress >= 100) {
+            clearInterval(cleaningInterval);
+            cleaningText.textContent = '¡Limpieza completada!';
             
-            document.getElementById('cancel-btn').disabled = true;
-            document.getElementById('status').textContent = 'Cancelando...';
-            
-            fetch(`/cancel-download/${downloadId}`)
+            // Realizar la limpieza real
+            fetch('/api/history', {
+                method: 'DELETE'
+            })
             .then(response => response.json())
             .then(data => {
-                if (!data.success) {
-                    document.getElementById('cancel-btn').disabled = false;
+                if (data.success) {
+                    setTimeout(() => {
+                        cleanModal.style.display = 'none';
+                        clearHistoryBtn.disabled = false;
+                        loadHistory();
+                        showAlert('Historial borrado correctamente', 'success');
+                    }, 1000);
                 }
-                showProgress(false);
             })
             .catch(error => {
-                console.error('Error al cancelar:', error);
-                document.getElementById('cancel-btn').disabled = false;
+                console.error('Error al borrar historial:', error);
+                cleanModal.style.display = 'none';
+                clearHistoryBtn.disabled = false;
+                showAlert('Error al borrar el historial', 'error');
             });
         }
-        
-        function formatFileSize(bytes) {
-            if (!bytes) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }, 100);
+}
+
+// Manejar descarga
+function handleDownload() {
+    const url = document.getElementById('url-input').value.trim();
+    if (!url) {
+        showAlert('Por favor ingresa una URL válida', 'error');
+        return;
+    }
+    
+    const downloadBtn = document.getElementById('download-btn');
+    const btnText = document.getElementById('btn-text');
+    downloadBtn.disabled = true;
+    btnText.textContent = 'Preparando...';
+    
+    fetch('/start-download', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `url=${encodeURIComponent(url)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            downloadId = data.download_id;
+            window.history.pushState({}, '', `/download/${downloadId}`);
+            showProgress();
+            updateProgress();
+            updateInterval = setInterval(updateProgress, 1000);
+        } else {
+            showAlert('Error: ' + data.message, 'error');
+            resetDownloadButton();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error al iniciar la descarga', 'error');
+        resetDownloadButton();
+    });
+}
+
+function resetDownloadButton() {
+    const downloadBtn = document.getElementById('download-btn');
+    const btnText = document.getElementById('btn-text');
+    downloadBtn.disabled = false;
+    btnText.textContent = 'Descargar';
+}
+
+function showProgress(show = true) {
+    document.getElementById('progress-container').style.display = show ? 'block' : 'none';
+}
+
+// Actualizar progreso
+function updateProgress() {
+    if (!downloadId) return;
+    
+    fetch(`/progress/${downloadId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            clearInterval(updateInterval);
+            document.getElementById('status').innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${data.error}`;
+            document.getElementById('status').className = 'status error';
+            resetDownloadButton();
+            return;
         }
         
-        function formatSpeed(bytesPerSecond) {
-            if (!bytesPerSecond) return '0 KB/s';
-            const k = 1024;
-            const sizes = ['Bytes/s', 'KB/s', 'MB/s', 'GB/s'];
-            const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
-            return parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        // Actualizar información de descarga
+        document.getElementById('filename').textContent = data.filename || 'Desconocido';
+        document.getElementById('file-size').textContent = `${formatFileSize(data.downloaded)} / ${formatFileSize(data.total_size)}`;
+        document.getElementById('download-progress').style.width = data.download_progress + '%';
+        document.getElementById('download-progress-percent').textContent = data.download_progress + '%';
+        document.getElementById('download-speed').innerHTML = `<i class="fas fa-tachometer-alt"></i> ${formatSpeed(data.download_speed)}`;
+        document.getElementById('download-eta').innerHTML = `<i class="far fa-clock"></i> ${data.download_eta || '--:--:--'}`;
+        
+        // Actualizar información de subida
+        document.getElementById('upload-progress').style.width = data.upload_progress + '%';
+        document.getElementById('upload-progress-percent').textContent = data.upload_progress + '%';
+        document.getElementById('upload-speed').innerHTML = `<i class="fas fa-tachometer-alt"></i> ${formatSpeed(data.upload_speed || 0)}`;
+        document.getElementById('upload-status').innerHTML = `<i class="fas fa-info-circle"></i> ${getUploadStatusText(data.upload_status)}`;
+        
+        // Actualizar estado general
+        const statusElement = document.getElementById('status');
+        if (data.status === 'completed') {
+            statusElement.innerHTML = `<i class="fas fa-check-circle"></i> ¡Proceso completado con éxito!`;
+            statusElement.className = 'status completed';
+            clearInterval(updateInterval);
+            resetDownloadButton();
+            document.getElementById('btn-text').textContent = 'Nueva descarga';
+            showDownloadModal(data);
+            updateStorageInfo();
+        } else if (data.status === 'downloading') {
+            statusElement.innerHTML = `<i class="fas fa-sync-alt fa-spin"></i> Descargando...`;
+            statusElement.className = 'status downloading';
+        } else if (data.status === 'uploading') {
+            statusElement.innerHTML = `<i class="fas fa-sync-alt fa-spin"></i> Subiendo archivo...`;
+            statusElement.className = 'status uploading';
+        } else if (data.status === 'canceled') {
+            statusElement.innerHTML = `<i class="fas fa-times-circle"></i> Proceso cancelado`;
+            statusElement.className = 'status canceled';
+            clearInterval(updateInterval);
+            resetDownloadButton();
+        } else if (data.status === 'error') {
+            statusElement.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${data.message || 'Error desconocido'}`;
+            statusElement.className = 'status error';
+            clearInterval(updateInterval);
+            resetDownloadButton();
         }
-        
-        // Manejar la tecla Enter en el input
-        document.getElementById('url-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                handleDownload();
-            }
-        });
-        
-        // Cerrar modal haciendo click fuera del contenido
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('downloadModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        });
+    })
+    .catch(error => {
+        console.error('Error al actualizar progreso:', error);
+    });
+}
 
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', function() {
-            // Mostrar solo el overlay de autenticación al inicio
-            document.getElementById('mainContainer').style.display = 'none';
-            document.getElementById('authOverlay').style.display = 'flex';
+function getUploadStatusText(status) {
+    const statusTexts = {
+        'pending': 'Pendiente',
+        'uploading': 'Subiendo...',
+        'completed': 'Completado',
+        'error': 'Error'
+    };
+    return statusTexts[status] || status;
+}
 
+// Mostrar modal de descarga completada
+function showDownloadModal(data) {
+    const modal = document.getElementById('downloadModal');
+    const downloadLink = document.getElementById('fileDownloadLink');
+    const linkText = document.getElementById('link-text');
+    
+    // Configurar información del archivo
+    document.getElementById('modal-filename').textContent = data.filename || 'Archivo descargado';
+    document.getElementById('modal-filesize').textContent = formatFileSize(data.total_size || 0);
+    document.getElementById('modal-location').textContent = data.public_url ? 'Servidor remoto' : 'Local';
+    
+    // Configurar enlace de descarga
+    if (data.public_url) {
+        downloadLink.href = data.public_url;
+        linkText.textContent = 'Abrir enlace público';
+        downloadLink.target = '_blank';
+    } else {
+        downloadLink.href = `/download-file/${downloadId}/${encodeURIComponent(data.filename)}`;
+        linkText.textContent = 'Descargar archivo local';
+        downloadLink.target = '_self';
+    }
+    
+    // Mostrar modal
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        document.querySelector('.modal-content').style.transform = 'translateY(0)';
+        document.querySelector('.modal-content').style.opacity = '1';
+    }, 10);
+    
+    // Actualizar el historial después de completar la descarga
+    loadHistory();
+}
 
-        });
+// Cerrar modal
+function closeModal() {
+    const modalContent = document.querySelector('.modal-content');
+    modalContent.style.transform = 'translateY(20px)';
+    modalContent.style.opacity = '0';
+    
+    setTimeout(() => {
+        document.getElementById('downloadModal').style.display = 'none';
+        showProgress(false);
+    }, 300);
+}
+
+// Cancelar descarga
+function cancelDownload() {
+    if (!downloadId) return;
+    
+    document.getElementById('cancel-btn').disabled = true;
+    document.getElementById('status').innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Cancelando...';
+    
+    fetch(`/cancel-download/${downloadId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            document.getElementById('cancel-btn').disabled = false;
+        }
+        showProgress(false);
+    })
+    .catch(error => {
+        console.error('Error al cancelar:', error);
+        document.getElementById('cancel-btn').disabled = false;
+    });
+}
+
+// Formatear tamaño de archivo
+function formatFileSize(bytes) {
+    if (!bytes) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Formatear velocidad
+function formatSpeed(bytesPerSecond) {
+    if (!bytesPerSecond) return '0 KB/s';
+    const k = 1024;
+    const sizes = ['Bytes/s', 'KB/s', 'MB/s', 'GB/s'];
+    const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
+    return parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Inicializar la aplicación cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
@@ -1545,6 +1898,11 @@ def handle_history():
         if clear_history():
             return jsonify({'success': True})
         return jsonify({'success': False}), 500
+
+@app.route('/api/auth', methods=['GET', 'DELETE'])
+def handle_auth():
+
+    return jsonify({'success': False}), 500
 
 def upload_file(filepath, download_id):
     try:
@@ -1823,7 +2181,39 @@ def handle_settings():
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500
 
-
+@app.route('/api/auth/<password>', methods=['GET'])
+def auth(password):
+    try:
+        # Verificar la contraseña
+        if password == ADMIN_PASSWORD:
+            return jsonify({
+                'success': True,
+                'loged': True,
+                'message': 'Autenticación exitosa',
+                'is_admin':True
+            })
+        elif password == CLIENT_PASSWORD:
+            return jsonify({
+                'success': False,
+                'loged': True,
+                'message': 'Contraseña incorrecta',
+                'is_admin':False
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'loged': False,
+                'message': 'Contraseña incorrecta',
+                'is_admin':False
+            }), 401
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'loged': False,
+            'message': f'Error en la autenticación: {str(e)}',
+            'is_admin':False
+        }), 500
 
 
 if __name__ == '__main__':
