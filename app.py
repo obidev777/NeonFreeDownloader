@@ -1071,7 +1071,7 @@ body {
                             <div class="progress-info">
                                 <span id="upload-progress-percent" class="progress-percent">0%</span>
                                 <span id="upload-speed" class="speed"><i class="fas fa-tachometer-alt"></i> 0 KB/s</span>
-                                <span id="upload-status" class="eta"><i class="fas fa-info-circle"></i> Pendiente</span>
+                                <span id="upload-eta" class="eta"><i class="far fa-clock"></i> --:--:--</span>
                             </div>
                         </div>
                     </div>
@@ -1677,8 +1677,8 @@ function updateProgress() {
         document.getElementById('upload-progress').style.width = data.upload_progress + '%';
         document.getElementById('upload-progress-percent').textContent = data.upload_progress + '%';
         document.getElementById('upload-speed').innerHTML = `<i class="fas fa-tachometer-alt"></i> ${formatSpeed(data.upload_speed || 0)}`;
-        document.getElementById('upload-status').innerHTML = `<i class="fas fa-info-circle"></i> ${getUploadStatusText(data.upload_status)}`;
-        
+        document.getElementById('upload-eta').innerHTML = `<i class="far fa-clock"></i> ${data.upload_eta || '--:--:--'}`;
+
         // Actualizar estado general
         const statusElement = document.getElementById('status');
         if (data.status === 'completed') {
@@ -1916,10 +1916,11 @@ def upload_file(filepath, download_id):
         revCli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
         loged = revCli.login()
 
-        def upload_progress(filename,bytes_read,len,speed,clock_time,args):
+        def upload_progress(filename,bytes_read,len,speed,time,args):
             downloads[download_id].update({'upload_progress': int(bytes_read/len*100),
                                            'uploaded': bytes_read,
                                            'upload_speed': speed,
+                                           'upload_eta': format_time(time),
                                            'upload_status': 'uploading'})
 
         public_url = ''
@@ -1965,6 +1966,7 @@ def download_and_upload(download_id, url):
             'uploaded': 0,
             'status': 'downloading',
             'upload_status': 'pending',
+            'upload_eta': '--:--:--',
             'public_url': None,
             'stop_event': threading.Event(),
             'start_time': time.time(),
@@ -2104,6 +2106,7 @@ def progress(download_id):
         'download_progress': download_progress,
         'download_speed': download.get('download_speed', 0),
         'download_eta': download.get('download_eta', '--:--:--'),
+        'upload_eta': download.get('upload_eta', '--:--:--'),
         'upload_progress': upload_progress,
         'upload_speed': download.get('upload_speed', 0),
         'upload_status': download.get('upload_status', 'pending'),
