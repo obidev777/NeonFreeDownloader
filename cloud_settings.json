@@ -3,6 +3,7 @@
   "username": "obysofttt",
   "password": "Obysoft2001@",
   "authType": "opuntiabrava",
-  "downLimit": 5,
-  "masterPassword": ""
+  "downLimit": 2,
+  "masterPassword": "obi123",
+  "clientPassword": "client2025"
 }

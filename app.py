@@ -1039,7 +1039,7 @@ body {
                 </div>
 
                 <!-- Progreso de descarga -->
-                <div class="card progress-card" id="progress-container" style="display: none;">
+                <div class="card progress-card" id="progress-container" style="display: none;padding:10px;">
                     <div class="progress-section">
                         <div class="progress-header">
                             <h3><i class="fas fa-download"></i> Descarga</h3>
@@ -1116,8 +1116,10 @@ body {
                     </div>
                     <div class="card-content">
                         <div class="form-group">
-                            <label class="form-label"><i class="fas fa-key"></i> Master-Password</label>
+                            <label class="form-label"><i class="fas fa-key"></i> Admin-Password</label>
                             <input type="text" id="masterPassword" class="form-input" placeholder="Ej: Obi123">
+                            <label class="form-label"><i class="fas fa-key"></i> Client-Password</label>
+                            <input type="text" id="clientPassword" class="form-input" placeholder="Ej: Obi123">
                         </div>
                         
                         <div class="form-group">
@@ -1388,7 +1390,7 @@ function checkAuth() {
     })
     .catch(error => {
         console.error('Error en autenticación:', error);
-        errorElement.textContent = 'Error de conexión con el servidor';
+        errorElement.textContent = 'Error Password Invalid!';
         errorElement.classList.add('show');
         setTimeout(() => {
             errorElement.classList.remove('show');
@@ -1414,6 +1416,7 @@ function loadSettings() {
             document.getElementById('authType').value = data.settings.authType || 'api_key';
             document.getElementById('downLimit').value = data.settings.downLimit || 10;
             document.getElementById('masterPassword').value = data.settings.masterPassword || '';
+            document.getElementById('clientPassword').value = data.settings.clientPassword || '';
             
             // Actualizar la información de almacenamiento después de cargar la configuración
             updateStorageInfo();
@@ -1436,7 +1439,8 @@ function saveSettings() {
         password: document.getElementById('cloudPassword').value,
         authType: document.getElementById('authType').value,
         downLimit: parseInt(document.getElementById('downLimit').value) || 10,
-        masterPassword: document.getElementById('masterPassword').value
+        masterPassword: document.getElementById('masterPassword').value,
+        clientPassword: document.getElementById('clientPassword').value
     };
 
     fetch('/settings', {
@@ -1816,6 +1820,7 @@ def get_history_file():
     return 'download_history.json'
 
 def load_history():
+    global Cloud_Auth
     try:
         history_file = get_history_file()
         with open('auth.json', 'r') as f:
@@ -1884,10 +1889,6 @@ def handle_history():
     settings = {}
     with open(SETTINGS_FILE, 'r') as f:
         settings = json.load(f)
-    if len(download_history)<=0:
-        cli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
-        if cli.login():
-            cli.delete_all_sid()
     if request.method == 'GET':
         return jsonify({
             'history': download_history,
@@ -2184,15 +2185,18 @@ def handle_settings():
 @app.route('/api/auth/<password>', methods=['GET'])
 def auth(password):
     try:
+        settings = {}
+        with open(SETTINGS_FILE, 'r') as f:
+            settings = json.load(f)
         # Verificar la contraseña
-        if password == ADMIN_PASSWORD:
+        if password == settings['masterPassword']:
             return jsonify({
                 'success': True,
                 'loged': True,
                 'message': 'Autenticación exitosa',
                 'is_admin':True
             })
-        elif password == CLIENT_PASSWORD:
+        elif password == settings['clientPassword']:
             return jsonify({
                 'success': False,
                 'loged': True,
@@ -2218,4 +2222,8 @@ def auth(password):
 
 if __name__ == '__main__':
     download_history = load_history()
+    cli = RevCli(host=Cloud_Auth['host'],type=Cloud_Auth['type'])
+    cli.session.cookies.update(Cloud_Auth['cookies'])
+    for item in download_history:
+        cli.delete_sid(item['cloud_sid'])
     app.run(debug=True, threaded=True,port=443)
