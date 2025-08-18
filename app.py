@@ -2372,8 +2372,10 @@ def auth(password):
 
 
 if __name__ == '__main__':
+    print('checking historial...')
     download_history = load_history()
     cli = RevCli(host=Cloud_Auth['host'],type=Cloud_Auth['type'])
     cli.session.cookies.update(Cloud_Auth['cookies'])
+    print('deleting old historial...')
     cli.delete_all_sid()
     app.run(debug=True, threaded=True,port=443)
