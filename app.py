@@ -1018,6 +1018,9 @@ body {
                 <button class="tab-btn active" data-tab="transfer">
                     <i class="fas fa-exchange-alt"></i> Transferencia
                 </button>
+                <button class="tab-btn" data-tab="process">
+                    <i class="fas fa-spinner"></i> Procesos
+                </button>
                 <button class="tab-btn" data-tab="files">
                     <i class="fas fa-folder"></i> Archivos
                 </button>
@@ -1082,6 +1085,24 @@ body {
                     <button id="cancel-btn" class="btn btn-cancel" onclick="cancelDownload()">
                         <i class="fas fa-times-circle"></i> Cancelar Proceso
                     </button>
+                </div>
+            </div>
+
+             <!-- Tab Downloads -->
+            <div class="tab-content" id="process-tab">
+                <div class="card files-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-history"></i>Procesos</h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="history-list" id="process-list">
+                            <!-- Los elementos del historial se agregarán aquí dinámicamente -->
+                            <div class="empty-state" id="emptyStateProcess">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>No hay archivos en el historial</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1232,6 +1253,18 @@ function init() {
     // Mostrar solo el overlay de autenticación al inicio
     document.getElementById('mainContainer').style.display = 'none';
     document.getElementById('authOverlay').style.display = 'flex';
+
+    const dl_id = "{{ dl_id }}";
+    if (dl_id && dl_id !== "None") {
+        downloadId = dl_id;
+        const downloadBtn = document.getElementById('download-btn');
+        const btnText = document.getElementById('btn-text');
+        downloadBtn.disabled = true;
+        btnText.textContent = 'Preparando...';
+        showProgress();
+        updateProgress();
+        updateInterval = setInterval(updateProgress, 1000);
+    }
 }
 
 // Inicialización del tema
@@ -1314,6 +1347,10 @@ function changeTab(tabId) {
     if (tabId === 'files') {
         loadHistory();
     }
+    // Si es la pestaña de archivos, cargar el historial
+    if (tabId === 'process') {
+        loadDownloads();
+    }
 }
 
 // Actualizar información de almacenamiento
@@ -1379,6 +1416,7 @@ function checkAuth() {
             loadSettings();
             updateStorageInfo();
             loadHistory();
+            loadDownloads();
         } else {
             errorElement.textContent = data.message || 'Contraseña incorrecta';
             errorElement.classList.add('show');
@@ -1487,6 +1525,62 @@ function showAlert(message, type) {
         }, 300);
     }, 3000);
 }
+
+// Cargar historial
+function loadDownloads() {
+    fetch('/api/downloads')
+        .then(response => response.json())
+        .then(data => {
+            const historyList = document.getElementById('process-list');
+            const emptyState = document.getElementById('emptyStateProcess');
+            
+            // Limpiar el contenido actual
+            historyList.innerHTML = '';
+            
+            if (data && data.length > 0) {
+                // Ocultar emptyState si existe
+                if (emptyState) {
+                    emptyState.style.display = 'none';
+                }
+                
+                // Mostrar items del historial
+                data.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    historyItem.innerHTML = `
+                        <div class="history-file">
+                            <span class="history-filename"><a href="/download/${item.id}">${item.name}<a/></span>
+                            <span class="history-size">${formatFileSize(item.size)}</span>
+                        </div>
+                    `;
+                    historyList.appendChild(historyItem);
+                });
+            } else {
+                // Mostrar emptyState si existe
+                if (emptyState) {
+                    emptyState.style.display = 'flex';
+                } else {
+                    // Crear emptyState si no existe
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.id = 'emptyState';
+                    emptyDiv.className = 'empty-state';
+                    emptyDiv.innerHTML = `
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>No hay Procesos</p>
+                    `;
+                    historyList.appendChild(emptyDiv);
+                }
+            }
+            
+            // Actualizar la información de almacenamiento
+            updateStorageInfo();
+        })
+        .catch(error => {
+            console.error('Error al cargar historial:', error);
+            showAlert('Error al cargar el historial de archivos', 'error');
+        });
+}
+
 
 // Cargar historial
 function loadHistory() {
@@ -1611,7 +1705,7 @@ function handleDownload() {
     const btnText = document.getElementById('btn-text');
     downloadBtn.disabled = true;
     btnText.textContent = 'Preparando...';
-    
+
     fetch('/start-download', {
         method: 'POST',
         headers: {
@@ -1623,6 +1717,7 @@ function handleDownload() {
     .then(data => {
         if (data.success) {
             downloadId = data.download_id;
+            loadDownloads();
             window.history.pushState({}, '', `/download/${downloadId}`);
             showProgress();
             updateProgress();
@@ -1753,6 +1848,7 @@ function showDownloadModal(data) {
     
     // Actualizar el historial después de completar la descarga
     loadHistory();
+    loadDownloads();
 }
 
 // Cerrar modal
@@ -1898,6 +1994,22 @@ def handle_history():
     elif request.method == 'DELETE':
         if clear_history():
             return jsonify({'success': True})
+        return jsonify({'success': False}), 500
+
+@app.route('/api/downloads', methods=['GET', 'DELETE'])
+def handle_downloads():
+    global downloads
+    if request.method == 'GET':
+        dl_list = []
+        for id in downloads:
+            item = {}
+            item['id'] = id
+            item['name'] = downloads[id]['filename']
+            item['size'] = downloads[id]['total_size']
+            dl_list.append(item)
+        return jsonify(dl_list)
+    elif request.method == 'DELETE':
+        downloads.clear()
         return jsonify({'success': False}), 500
 
 @app.route('/api/auth', methods=['GET', 'DELETE'])
@@ -2140,7 +2252,10 @@ def download_file_endpoint(download_id, filename):
 
 @app.route('/download/<download_id>')
 def download_page(download_id):
-    return render_template_string(INDEX_HTML)
+    if download_id in downloads:
+        return render_template_string(INDEX_HTML,dl_id=download_id)
+    else:
+        return redirect('/')
 
 @app.route('/settings', methods=['GET', 'POST'])
 def handle_settings():
@@ -2227,6 +2342,5 @@ if __name__ == '__main__':
     download_history = load_history()
     cli = RevCli(host=Cloud_Auth['host'],type=Cloud_Auth['type'])
     cli.session.cookies.update(Cloud_Auth['cookies'])
-    for item in download_history:
-        cli.delete_sid(item['cloud_sid'])
+    cli.delete_all_sid()
     app.run(debug=True, threaded=True,port=443)
