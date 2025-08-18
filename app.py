@@ -1884,10 +1884,6 @@ def handle_history():
     settings = {}
     with open(SETTINGS_FILE, 'r') as f:
         settings = json.load(f)
-    if len(download_history)<=0:
-        cli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
-        if cli.login():
-            cli.delete_all_sid()
     if request.method == 'GET':
         return jsonify({
             'history': download_history,
@@ -2218,6 +2214,9 @@ def auth(password):
 
 if __name__ == '__main__':
     download_history = load_history()
-
+    if len(download_history)<=0:
+        cli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
+        if cli.login():
+            cli.delete_all_sid()
     app.run(debug=True, threaded=True,port=443)
 
