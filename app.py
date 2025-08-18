@@ -1265,6 +1265,8 @@ function init() {
         updateProgress();
         updateInterval = setInterval(updateProgress, 1000);
     }
+
+    checkAuth(true);
 }
 
 // Inicialización del tema
@@ -1385,8 +1387,13 @@ function updateStorageInfo() {
 }
 
 // Autenticación
-function checkAuth() {
-    const password = document.getElementById('authPassword').value;
+function checkAuth(from_cookies=false) {
+    var password = "";
+    if(from_cookies){
+        password = getCookie("authpass");
+    }else{
+         password = document.getElementById('authPassword').value;
+    }
     const errorElement = document.getElementById('authError');
     
     if (!password) {
@@ -1404,6 +1411,7 @@ function checkAuth() {
     })
     .then(data => {
         if (data.loged) {
+            setCookie("authpass", password);
             isAuthenticated = true;
             document.getElementById('authOverlay').style.display = 'none';
             document.getElementById('mainContainer').style.display = 'flex';
@@ -1900,6 +1908,25 @@ function formatSpeed(bytesPerSecond) {
     const sizes = ['Bytes/s', 'KB/s', 'MB/s', 'GB/s'];
     const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
     return parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Función para guardar una cookie
+function setCookie(name, value, daysToExpire = 1) {
+    const date = new Date();
+    date.setTime(date.getTime() + (daysToExpire * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = `${name}=${value}; ${expires}; path=/`;
+}
+
+function getCookie(name) {
+    const cookies = document.cookie.split('; ');
+    for (const cookie of cookies) {
+        const [cookieName, cookieValue] = cookie.split('=');
+        if (cookieName === name) {
+            return decodeURIComponent(cookieValue); // Decodifica caracteres especiales
+        }
+    }
+    return null; // Si no existe la cookie
 }
 
 // Inicializar la aplicación cuando el DOM esté listo
