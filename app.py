@@ -22,6 +22,7 @@ CLIENT_PASSWORD = 'client2025'  # Cambia esto en producción
 # Estructura para manejar las descargas
 downloads = {}
 sids = []
+ON_START = False
 
 # Asegurar que la carpeta de descargas existe
 #os.makedirs(app.config['DOWNLOAD_FOLDER'], exist_ok=True)
@@ -2199,6 +2200,10 @@ def format_time(seconds):
 
 @app.route('/')
 def index():
+    if ON_START==False:
+        print('checking historial...')
+        download_history = load_history()
+        ON_START = True
     return render_template_string(INDEX_HTML)
 
 @app.route('/start-download', methods=['POST'])
@@ -2372,10 +2377,4 @@ def auth(password):
 
 
 if __name__ == '__main__':
-    print('checking historial...')
-    download_history = load_history()
-    cli = RevCli(host=Cloud_Auth['host'],type=Cloud_Auth['type'])
-    cli.session.cookies.update(Cloud_Auth['cookies'])
-    print('deleting old historial...')
-    cli.delete_all_sid()
     app.run(debug=True, threaded=True,port=443)
