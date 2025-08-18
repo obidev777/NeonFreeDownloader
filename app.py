@@ -1039,7 +1039,7 @@ body {
                 </div>
 
                 <!-- Progreso de descarga -->
-                <div style="padding:10px;" class="card progress-card" id="progress-container" style="display: none;">
+                <div class="card progress-card" id="progress-container" style="display: none;padding:10px;">
                     <div class="progress-section">
                         <div class="progress-header">
                             <h3><i class="fas fa-download"></i> Descarga</h3>
@@ -2220,3 +2220,4 @@ if __name__ == '__main__':
     download_history = load_history()
 
     app.run(debug=True, threaded=True,port=443)
+
