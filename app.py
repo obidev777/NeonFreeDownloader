@@ -969,7 +969,7 @@ body {
 </head>
 <body>
     <!-- Overlay de autenticación -->
-    <div class="auth-overlay" id="authOverlay" style="display:none">
+    <div class="auth-overlay" id="authOverlay">
         <div class="auth-box">
             <div class="logo">
                 <i class="fas fa-cloud-upload-alt"></i>
@@ -989,7 +989,7 @@ body {
     </div>
 
     <!-- Contenedor principal -->
-    <div class="app-container" id="mainContainer" style="display:flex;">
+    <div class="app-container" id="mainContainer">
         <!-- Header -->
         <header class="app-header">
             <div class="header-left">
@@ -1251,8 +1251,8 @@ function init() {
     setupEventListeners();
     
     // Mostrar solo el overlay de autenticación al inicio
-    document.getElementById('mainContainer').style.display = 'flex';
-    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('mainContainer').style.display = 'none';
+    document.getElementById('authOverlay').style.display = 'flex';
 
     const dl_id = "{{ dl_id }}";
     if (dl_id && dl_id !== "None") {
@@ -1451,7 +1451,7 @@ function loadSettings() {
     
     fetch('/settings', {
         headers: {
-            'Authorization': ADMIN_PASSWORD
+            'Authorization': getCookie("authpass")
         }
     })
     .then(response => response.json())
@@ -2287,9 +2287,12 @@ def download_page(download_id):
 
 @app.route('/settings', methods=['GET', 'POST'])
 def handle_settings():
+    settings = {}
+    with open(SETTINGS_FILE, 'r') as f:
+        settings = json.load(f)
     # Verificar autenticación
     auth = request.headers.get('Authorization')
-    if not auth or auth != ADMIN_PASSWORD:
+    if not auth or auth != settings['masterPassword']:
         return jsonify({'success': False, 'message': 'No autorizado'}), 401
     
     if request.method == 'POST':
