@@ -2200,13 +2200,11 @@ def format_time(seconds):
 
 def On_Start_Thread():
     global Cloud_Auth
-    print(download_history)
     settings = {}
     with open(SETTINGS_FILE, 'r') as f:
         settings = json.load(f)
     print('checking historial...')
     download_history = load_history()
-    print(settings)
     cli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
     loged = cli.login()
     if loged:
