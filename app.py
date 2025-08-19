@@ -2198,12 +2198,29 @@ def download_and_upload(download_id, url):
 def format_time(seconds):
     return str(timedelta(seconds=seconds)).split('.')[0]
 
+def On_Start_Thread():
+    global Cloud_Auth
+    print(download_history)
+    settings = {}
+    with open(SETTINGS_FILE, 'r') as f:
+        settings = json.load(f)
+    print('checking historial...')
+    download_history = load_history()
+    print(settings)
+    cli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
+    loged = cli.login()
+    if loged:
+        Cloud_Auth = cli.session.cookies.get_dict()
+        print('deleting old sids...')
+        cli.delete_all_sid()
+
 @app.route('/')
 def index():
+    global download_history
     global ON_START
     if ON_START==False:
-        print('checking historial...')
         download_history = load_history()
+        threading.Thread(target=On_Start_Thread).start()
         ON_START = True
     return render_template_string(INDEX_HTML)
 
