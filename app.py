@@ -1944,21 +1944,45 @@ download_history = []
 def get_history_file():
     return 'download_history.json'
 
+
+download_history_sizes = {}
 def load_history():
     global Cloud_Auth
+    global download_history
+    global download_history_sizes
     try:
-        history_file = get_history_file()
+        download_history.clear()
         with open('auth.json', 'r') as f:
                 Cloud_Auth = json.load(f)
-        with open(history_file, 'r') as f:
-                return json.load(f)
-    except:pass
+        settings = {}
+        with open(SETTINGS_FILE, 'r') as f:
+            settings = json.load(f)
+        cli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
+        cli.session.cookies.update(Cloud_Auth['cookies'])
+        sids = cli.get_sids()
+        print(Cloud_Auth)
+        for sid in sids:
+            wit_size = False
+            files = cli.get_files_from_sid(sid,False)
+            for f in files:
+                size = 0
+                if f['name'] in download_history_sizes:
+                    size = download_history_sizes[f['name']]
+                else:
+                    size = cli.get_filesize_from_url(f['url'])
+                add_to_history(f['name'],size,sid,f['url'])
+        return download_history
+    except Exception as ex:print(ex)
     return []
 
 def save_history():
+    global download_history
     history_file = get_history_file()
     with open(history_file, 'w') as f:
         json.dump(download_history, f)
+
+def save_auth():
+    global Cloud_Auth
     with open('auth.json', 'w') as f:
         json.dump(Cloud_Auth, f)
 
@@ -1973,6 +1997,8 @@ def limited(size):
     return False
 
 def add_to_history(filename, size,cloud_sid,url_down):
+    global download_history
+    global download_history_sizes
     settings = {}
     with open(SETTINGS_FILE, 'r') as f:
         settings = json.load(f)
@@ -1984,6 +2010,7 @@ def add_to_history(filename, size,cloud_sid,url_down):
         return False
     
     # Agregar al historial
+    download_history_sizes[filename] = size
     download_history.append({
         'filename': filename,
         'size': size,
@@ -2001,16 +2028,20 @@ def add_to_history(filename, size,cloud_sid,url_down):
 
 def clear_history():
     global download_history
+    global download_history_sizes
+    global Cloud_Auth
     cli = RevCli(host=Cloud_Auth['host'],type=Cloud_Auth['type'])
     cli.session.cookies.update(Cloud_Auth['cookies'])
-    for item in download_history:
-        cli.delete_sid(item['cloud_sid'])
-    download_history = []
+    cli.delete_all_sid()
+    download_history.clear()
+    download_history_sizes = {}
     save_history()
     return True
 
 @app.route('/api/history', methods=['GET', 'DELETE'])
 def handle_history():
+    global download_history
+    download_history = load_history()
     settings = {}
     with open(SETTINGS_FILE, 'r') as f:
         settings = json.load(f)
@@ -2072,6 +2103,8 @@ def upload_file(filepath, download_id):
             Cloud_Auth['cookies'] = revCli.getsession().cookies.get_dict()
             Cloud_Auth['host'] = revCli.host
             Cloud_Auth['type'] = revCli.type
+            save_auth()
+
             sid = revCli.create_sid()
             public_url = revCli.upload(filepath,upload_progress,sid=sid)
             add_to_history(filepath,file_size,sid,public_url)
@@ -2200,25 +2233,24 @@ def format_time(seconds):
 
 def On_Start_Thread():
     global Cloud_Auth
+    global download_history
     settings = {}
     with open(SETTINGS_FILE, 'r') as f:
         settings = json.load(f)
-    print('checking historial...')
-    download_history = load_history()
     cli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
     loged = cli.login()
     if loged:
-        Cloud_Auth = cli.session.cookies.get_dict()
-        print('deleting old sids...')
-        cli.delete_all_sid()
+        Cloud_Auth['cookies'] = cli.session.cookies.get_dict()
+        Cloud_Auth['host'] = cli.host
+        Cloud_Auth['type'] = cli.type
+        save_auth();
+    download_history = load_history()
 
 @app.route('/')
 def index():
-    global download_history
     global ON_START
-    if ON_START==False:
-        download_history = load_history()
-        threading.Thread(target=On_Start_Thread).start()
+    if not ON_START:
+        On_Start_Thread()
         ON_START = True
     return render_template_string(INDEX_HTML)
 

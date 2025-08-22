@@ -827,6 +827,50 @@ class RevCli(object):
         except:pass
         return False
 
+    def get_sids(self):
+        try:
+            resp = self.session.get(f'{self.host}index.php/{self.type}/submissions', proxies=self.proxy,
+                                    headers=self.headers, verify=False)
+            soup = BeautifulSoup(resp.text, "html.parser")
+            submisions = json.loads(soup.find_all('script')[-2].text.split('"Page", ')[-1].replace(');\n\t',''))['components']['myQueue']['items']
+            sids = []
+            for subm in submisions:
+                sids.append(subm['id'])
+            return sids
+        except:pass
+        return []
+
+    def get_filesize_from_url(self,url):
+        try:
+            resp = self.session.get(url, proxies=self.proxy,
+                                    headers=self.headers, verify=False,allow_redirects=True,stream=True)
+            if 'Content-Length' in resp.headers:
+                size = int(resp.headers['Content-Length'])
+                return size
+            else:
+                return "File size not available in headers."
+        except requests.RequestException as e:
+            return f"An error occurred: {e}"
+
+    def get_files_from_sid(self,submid,with_size=True):
+        try:
+            resp = self.session.get(f'{self.host}index.php/{self.type}/submission/step/2?submissionId={submid}&sectionId=0', proxies=self.proxy,
+                                    headers=self.headers, verify=False)
+            data = json.loads(resp.json()['content'].split('\"items\":')[1].split(',\"options\":')[0])
+            files = []
+            for f in data:
+                host = self.host.replace('https://','').replace('/','')
+                fileid = f['id']
+                mkurl = f'https://{host}/index.php/{self.type}/$$$call$$$/api/file/file-api/download-file?submissionFileId={fileid}&submissionId={submid}&stageId=1'
+                if with_size:
+                    filesize = self.get_filesize_from_url(mkurl)
+                else:
+                    filesize = 0
+                files.append({'name':f['name']['es_ES'],'url':mkurl,'filesize':filesize})
+            return files
+        except:pass
+        return []
+
     def add_cookie_to_session(self,name: str,
         value: str,
         domain: str,
@@ -850,7 +894,10 @@ class RevCli(object):
 #cli = RevCli('obysofttt','Obysoft2001@',host='https://opuntiabrava.ult.edu.cu/',type='opuntiabrava')
 #loged = cli.login()
 #if loged:
-#    cli.delete_all_sid()
+#    sids = cli.get_sids()
+#    for sid in sids:
+#        print(cli.get_files_from_sid(sid))
+#    print('Finish')
 #    print('loged')
 #    sid = cli.create_sid_opuntiabrava()
 #    print(sid)
