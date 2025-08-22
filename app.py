@@ -2386,7 +2386,6 @@ def index():
             if not ON_START:
                 On_Start_Thread()
                 ON_START = True
-            return render_template_string(INDEX_HTML)
     return render_template_string(INDEX_HTML)
 
 @app.route('/start-download', methods=['POST'])
