@@ -852,13 +852,15 @@ class RevCli(object):
         except requests.RequestException as e:
             return f"An error occurred: {e}"
 
-    def get_files_from_sid(self,submid,with_size=True):
+    def get_files_from_sid(self,submid,with_size=True,filter=None):
         try:
             resp = self.session.get(f'{self.host}index.php/{self.type}/submission/step/2?submissionId={submid}&sectionId=0', proxies=self.proxy,
                                     headers=self.headers, verify=False)
             data = json.loads(resp.json()['content'].split('\"items\":')[1].split(',\"options\":')[0])
             files = []
             for f in data:
+                if filter:
+                    if f['name'] != filter:continue
                 host = self.host.replace('https://','').replace('/','')
                 fileid = f['id']
                 mkurl = f'https://{host}/index.php/{self.type}/$$$call$$$/api/file/file-api/download-file?submissionFileId={fileid}&submissionId={submid}&stageId=1'

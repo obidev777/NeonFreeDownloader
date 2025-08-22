@@ -2069,7 +2069,7 @@ def get_history_file():
 
 
 download_history_sizes = {}
-def load_history():
+def load_history(filter=None):
     global Cloud_Auth
     global download_history
     global download_history_sizes
@@ -2086,7 +2086,7 @@ def load_history():
         print(Cloud_Auth)
         for sid in sids:
             wit_size = False
-            files = cli.get_files_from_sid(sid,False)
+            files = cli.get_files_from_sid(sid,False,filter=filter)
             for f in files:
                 size = 0
                 if f['name'] in download_history_sizes:
@@ -2164,7 +2164,10 @@ def clear_history():
 @app.route('/api/history', methods=['GET', 'DELETE'])
 def handle_history():
     global download_history
-    download_history = load_history()
+    global Cloud_Auth
+    filename = request.args.get('filename',type=str)
+    print(filename)
+    download_history = load_history(filter=filename)
     settings = {}
     with open(SETTINGS_FILE, 'r') as f:
         settings = json.load(f)
@@ -2172,7 +2175,8 @@ def handle_history():
         return jsonify({
             'history': download_history,
             'total_size': sum(item['size'] for item in download_history),
-            'max_size': settings['downLimit'] * 1024**3
+            'max_size': settings['downLimit'] * 1024**3,
+            'cookies':Cloud_Auth['cookies']
         })
     elif request.method == 'DELETE':
         if clear_history():
