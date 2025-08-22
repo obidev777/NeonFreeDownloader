@@ -1970,7 +1970,7 @@ function showDownloadModal(data) {
     
     // Configurar enlace de descarga
     if (data.public_url) {
-        downloadLink.href = data.public_url;
+        downloadLink.href = "http://127.0.0.1:8000/download/" + data.filename;
         linkText.textContent = 'Abrir enlace publico';
         downloadLink.target = '_blank';
     } else {
