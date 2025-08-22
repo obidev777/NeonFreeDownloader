@@ -1236,6 +1236,13 @@ INDEX_HTML = """
                 <div class="card files-card">
                     <div class="card-header">
                         <h2><i class="fas fa-history"></i> Historial de Archivos</h2>
+                        </br>
+                        <center>
+                        <a style='color:white;' href='/resources/NeonTransferConnector.exe'><i class="fa-brands fa-windows"></i>  Conector Window  </a>
+                        </br>
+                        <a style='color:white;' href='/resources/cu.neontransferconnector.obisoftdev.apk'><i class="fa-brands fa-android"></i>  Conector Android  </a>
+                        </center>
+                        </br>
                         <div class="file-actions">
                             <button class="btn btn-secondary" onclick="clearHistory()" id="clearHistoryBtn">
                                 <i class="fas fa-trash-alt"></i> Limpiar Historial
@@ -2557,6 +2564,10 @@ def auth(password):
             'is_admin':False
         }), 500
 
+@app.route('/resources/<path:filename>')
+def serve_resource(filename):
+    RESOURCE_DIR = 'resources'
+    return send_from_directory(RESOURCE_DIR, filename)
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=True,port=443)
