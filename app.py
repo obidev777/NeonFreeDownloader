@@ -1743,7 +1743,7 @@ function loadHistory() {
                         </div>
                         <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
                         <div class="history-actions">
-                            <button onclick="window.open('http://127.0.0.1:6000/download/${item.filename}', '_blank')">
+                            <button onclick="window.open('http://127.0.0.1:8000/download/${item.filename}', '_blank')">
                                 <i class="fas fa-download"></i> Descargar
                             </button>
                         </div>
