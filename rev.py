@@ -896,10 +896,15 @@ class RevCli(object):
 #cli = RevCli('obysofttt','Obysoft2001@',host='https://opuntiabrava.ult.edu.cu/',type='opuntiabrava')
 #loged = cli.login()
 #if loged:
-#    sids = cli.get_sids()
-#    for sid in sids:
-#        print(cli.get_files_from_sid(sid,filter='signed'))
-#    print('Finish')
+#    cookie_dict = requests.utils.dict_from_cookiejar(cli.session.cookies)
+#
+#    # Serializa lo importante
+#    session_data = {
+#        "headers": dict(cli.session.headers),
+#        "proxies": cli.session.proxies,
+#        "cookies": cookie_dict
+#    }
+#    print(session_data)
 #    print('loged')
 #    sid = cli.create_sid_opuntiabrava()
 #    print(sid)

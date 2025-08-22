@@ -2386,6 +2386,7 @@ def index():
             if not ON_START:
                 On_Start_Thread()
                 ON_START = True
+            return render_template_string(INDEX_HTML)
     return render_template_string(INDEX_HTML)
 
 @app.route('/start-download', methods=['POST'])
@@ -2559,4 +2560,4 @@ def auth(password):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True,port=8080)
+    app.run(debug=True, threaded=True,port=443)
