@@ -2176,7 +2176,8 @@ def handle_history():
             'history': download_history,
             'total_size': sum(item['size'] for item in download_history),
             'max_size': settings['downLimit'] * 1024**3,
-            'cookies':Cloud_Auth['cookies']
+            'cookies':Cloud_Auth['cookies'],
+            'settings':settings
         })
     elif request.method == 'DELETE':
         if clear_history():
