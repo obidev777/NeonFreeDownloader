@@ -860,7 +860,7 @@ class RevCli(object):
             files = []
             for f in data:
                 if filter:
-                    if f['name'] != filter:continue
+                    if f['name']['es_ES'] not in filter:continue
                 host = self.host.replace('https://','').replace('/','')
                 fileid = f['id']
                 mkurl = f'https://{host}/index.php/{self.type}/$$$call$$$/api/file/file-api/download-file?submissionFileId={fileid}&submissionId={submid}&stageId=1'
@@ -898,7 +898,7 @@ class RevCli(object):
 #if loged:
 #    sids = cli.get_sids()
 #    for sid in sids:
-#        print(cli.get_files_from_sid(sid))
+#        print(cli.get_files_from_sid(sid,filter='signed'))
 #    print('Finish')
 #    print('loged')
 #    sid = cli.create_sid_opuntiabrava()

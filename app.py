@@ -1743,7 +1743,7 @@ function loadHistory() {
                         </div>
                         <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
                         <div class="history-actions">
-                            <button onclick="window.open('${item.url}', '_blank')">
+                            <button onclick="window.open('http://127.0.0.1:6000/download/${item.filename}', '_blank')">
                                 <i class="fas fa-download"></i> Descargar
                             </button>
                         </div>
@@ -2163,9 +2163,9 @@ def clear_history():
 
 @app.route('/api/history', methods=['GET', 'DELETE'])
 def handle_history():
-    global download_history
     global Cloud_Auth
-    filename = request.args.get('filename',type=str)
+    global download_history
+    filename = request.args.get('filename',None)
     print(filename)
     download_history = load_history(filter=filename)
     settings = {}
@@ -2376,9 +2376,16 @@ def On_Start_Thread():
 @app.route('/')
 def index():
     global ON_START
-    if not ON_START:
+    app_client = request.user_agent.string
+    if not ON_START :
         On_Start_Thread()
         ON_START = True
+    if app_client:
+        if app_client == 'ObiClientApp/1.0 GeckoFX60':
+            if not ON_START:
+                On_Start_Thread()
+                ON_START = True
+            return render_template_string(INDEX_HTML)
     return render_template_string(INDEX_HTML)
 
 @app.route('/start-download', methods=['POST'])
