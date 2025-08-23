@@ -2090,12 +2090,12 @@ def load_history(filter=None):
         cli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
         cli.session.cookies.update(Cloud_Auth['cookies'])
         sids = cli.get_sids()
-        print(Cloud_Auth)
         for sid in sids:
             wit_size = False
             files = cli.get_files_from_sid(sid,False,filter=filter)
             for f in files:
                 size = 0
+                print(f)
                 if f['name'] in download_history_sizes:
                     size = download_history_sizes[f['name']]
                 else:

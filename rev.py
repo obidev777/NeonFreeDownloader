@@ -848,7 +848,7 @@ class RevCli(object):
                 size = int(resp.headers['Content-Length'])
                 return size
             else:
-                return "File size not available in headers."
+                return 0
         except requests.RequestException as e:
             return f"An error occurred: {e}"
 
@@ -896,9 +896,11 @@ class RevCli(object):
 #cli = RevCli('obysofttt','Obysoft2001@',host='https://opuntiabrava.ult.edu.cu/',type='opuntiabrava')
 #loged = cli.login()
 #if loged:
-#    cookie_dict = requests.utils.dict_from_cookiejar(cli.session.cookies)
-#
-#    # Serializa lo importante
+#    sids = cli.get_sids()
+#    for s in sids:
+#        print(cli.get_files_from_sid(s))
+#    print(sids)
+    # Serializa lo importante
 #    session_data = {
 #        "headers": dict(cli.session.headers),
 #        "proxies": cli.session.proxies,
