@@ -1,13 +1,14 @@
-# ⚡️ MyApp
+# ⚡️ Neon Cloud Transfer
 
-Una aplicación rápida y sencilla para comenzar tu proyecto en Python.
+Transfiere Archivos Gratis sin consumo de megas a tu PC o Movil 
 
 ---
 
 ## 🚀 Instalación
 
-Clona el repositorio y navega al directorio del proyecto:
+Clona el repositorio y navega al directorio del proyecto y ejecuta lo siguiente:
 
-```bash
-git clone https://github.com/tu-usuario/mi-app.git
-cd mi-app
+```
+pip install -r requirements.txt
+python app.py
+```
