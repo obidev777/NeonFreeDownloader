@@ -31,7 +31,7 @@ CLIENT_PASSWORD = 'client2025'  # Cambia esto en producción
 downloads = {}
 sids = []
 ON_START = False
-SPLIT_SIZE = 300
+SPLIT_SIZE = 5
 
 # Asegurar que la carpeta de descargas existe
 #os.makedirs(app.config['DOWNLOAD_FOLDER'], exist_ok=True)
@@ -2260,37 +2260,28 @@ def upload_file(filepath, download_id):
         uploaded = 0
         revCli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
         loged = revCli.login()
-        total_bytes_read = 0
+        max_split_temp = (SPLIT_SIZE*1024*1024)
 
         # Variables para tracking del progreso
-        total_bytes_uploaded = 0
-        last_reported_bytes = 0
+        part_index = 1
+        part_total = int(file_size/max_split_temp)
+        if part_total<=0:
+            part_total=1
 
         def upload_progress(filename, bytes_read, total_len, speed, time, args):
-            nonlocal total_bytes_uploaded, last_reported_bytes,file_size,download_id
-            
+            nonlocal part_index,part_total
             try:
-                # bytes_read es probablemente el total acumulado, no el incremento
-                current_bytes = bytes_read
-                
-                # Calcular el incremento desde la última vez
-                increment = current_bytes - last_reported_bytes
-                total_bytes_uploaded += increment
-                last_reported_bytes = current_bytes
-                
-                # Asegurarse de no pasar del 100%
-                progress_percent = min(100, int((total_bytes_uploaded / file_size) * 100))
-                total_bytes_uploaded = min(total_bytes_uploaded, file_size)
-                
+                eta = format_size(time)
+                if part_total>1:
+                    eta = f' {part_index}/{part_total} Partes    [ {format_time(time)} ]'
                 if download_id in downloads:
                     downloads[download_id].update({
-                        'upload_progress': progress_percent,
-                        'uploaded': total_bytes_uploaded,
+                        'upload_progress': int(bytes_read/total_len*100),
+                        'uploaded': bytes_read,
                         'upload_speed': speed,
-                        'upload_eta': format_time(time),
+                        'upload_eta': eta,
                         'upload_status': 'uploading'
                     })
-                    
             except Exception as e:
                 print(f"Error in upload_progress: {e}")
 
@@ -2306,7 +2297,7 @@ def upload_file(filepath, download_id):
 
             parts = []
             
-            max_split_temp = (SPLIT_SIZE*1024*1024)
+            
             if file_size > max_split_temp:
                 with open(filepath,'rb') as f:
                     read_max = 1 * 1024 * 1024
@@ -2331,6 +2322,7 @@ def upload_file(filepath, download_id):
                             os.unlink(temp)
                             temp = f'file{temp_index}.temp'
                             temp_file = open(temp,'wb')
+                            part_index += 1
             else:
                 public_url = revCli.upload(filepath,upload_progress,sid=sid,args=(download_id))
                 parts.append(public_url)
