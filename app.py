@@ -1940,6 +1940,7 @@ function updateProgress() {
             document.getElementById('btn-text').textContent = 'Nueva descarga';
             showDownloadModal(data);
             updateStorageInfo();
+            loadDownloads();
         } else if (data.status === 'downloading') {
             statusElement.innerHTML = `<i class="fas fa-sync-alt fa-spin"></i> Descargando...`;
             statusElement.className = 'status downloading';
@@ -1956,6 +1957,7 @@ function updateProgress() {
             statusElement.className = 'status error';
             clearInterval(updateInterval);
             resetDownloadButton();
+            loadDownloads();
         }
     })
     .catch(error => {
@@ -2240,6 +2242,7 @@ def handle_downloads():
         dl_list = []
         for id in downloads:
             if downloads[id]['status'] == 'completed' or downloads[id]['status'] == 'error':
+                downloads.pop(id)
                 continue
             item = {}
             item['id'] = id
@@ -2578,7 +2581,6 @@ def start_download():
 
 @app.route('/progress/<download_id>')
 def progress(download_id):
-    global downloads
     if download_id not in downloads:
                     downloads[download_id] = {
                         'url': '',
