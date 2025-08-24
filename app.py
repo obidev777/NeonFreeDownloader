@@ -2257,10 +2257,12 @@ def upload_file(filepath, download_id):
         uploaded = 0
         revCli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
         loged = revCli.login()
+        total_bytes_read = 0
 
         def upload_progress(filename,bytes_read,len,speed,time,args):
+            total_bytes_read += bytes_read
             downloads[download_id].update({'upload_progress': int(bytes_read/file_size*100),
-                                           'uploaded': bytes_read,
+                                           'uploaded': total_bytes_read,
                                            'upload_speed': speed,
                                            'upload_eta': format_time(time),
                                            'upload_status': 'uploading'})
