@@ -2597,15 +2597,6 @@ def download_and_upload(download_id, url):
             # Usar M3U8Downloader para streams
             downloader = M3U8Downloader(max_workers=3, timeout=30, retries=2)
             
-            # Obtener información del stream
-            stream_info = downloader.get_stream_info(url)
-            if not stream_info:
-                downloads[download_id].update({
-                    'status': 'error',
-                    'message': 'No se pudo obtener información del stream M3U8'
-                })
-                return
-            
             # Estimar tamaño
             size_info = downloader.estimate_m3u8_size(url)
             if 'error' in size_info:
