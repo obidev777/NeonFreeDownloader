@@ -2121,7 +2121,7 @@ def load_history(filter=None):
         sids = cli.get_sids()
         for sid in sids:
             wit_size = False
-            files = cli.get_files_from_sid(sid,False,filter=filter)
+            files = cli.get_files_from_sid(sid,False)
             size = 0
             parts = []
             filename = ''
@@ -2144,7 +2144,11 @@ def load_history(filter=None):
                         parts.append(f['url'])
                         break
             if filename:
-                add_to_history(filename,size,sid,parts)
+                if filter:
+                    if filter == filename:
+                        add_to_history(filename,size,sid,parts)
+                else:
+                    add_to_history(filename,size,sid,parts)
         return download_history
     except Exception as ex:print(ex)
     return []
