@@ -2071,6 +2071,309 @@ document.addEventListener('DOMContentLoaded', init);
 # Estructura para almacenar el historial
 download_history = []
 
+# Clase M3U8Downloader para manejar descargas de streams
+class M3U8Downloader:
+    def __init__(self, max_workers=3, timeout=30, retries=2):
+        self.max_workers = max_workers
+        self.timeout = timeout
+        self.retries = retries
+        self.progress_callback = None
+        self.is_downloading = False
+        self.cancel_requested = False
+        
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Referer': 'https://www.example.com/',
+        }
+    
+    def set_progress_callback(self, callback):
+        self.progress_callback = callback
+    
+    def _download_with_retry(self, url, output_path, segment_index, total_segments):
+        for attempt in range(self.retries + 1):
+            if self.cancel_requested:
+                return False, "Descarga cancelada"
+                
+            try:
+                start_time = time.time()
+                
+                response = requests.get(
+                    url, 
+                    headers=self.headers, 
+                    timeout=self.timeout,
+                    stream=True
+                )
+                response.raise_for_status()
+                
+                content = response.content
+                download_time = time.time() - start_time
+                speed = len(content) / download_time / 1024 if download_time > 0 else 0
+                
+                with open(output_path, 'wb') as f:
+                    f.write(content)
+                
+                return True, speed
+                
+            except requests.exceptions.RequestException as e:
+                if attempt == self.retries:
+                    return False, f"Error después de {self.retries} intentos: {e}"
+                time.sleep(1)
+        
+        return False, "Error desconocido"
+    
+    def _parse_m3u8(self, m3u8_url, content):
+        segments = []
+        lines = content.strip().split('\n')
+        
+        if 'manifest.m3u8' in m3u8_url:
+            base_url = '/'.join(m3u8_url.split('/')[:-1]) + '/'
+        else:
+            base_url = m3u8_url.rsplit('/', 1)[0] + '/' if '/' in m3u8_url else m3u8_url
+        
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                if line.startswith('http'):
+                    segments.append(line)
+                else:
+                    segments.append(urljoin(base_url, line))
+        
+        return segments
+    
+    def _update_progress(self, downloaded, total, speed=0):
+        if self.progress_callback:
+            percentage = (downloaded / total) * 100 if total > 0 else 0
+            self.progress_callback(downloaded, total, percentage, speed)
+    
+    def get_stream_info(self, m3u8_url):
+        try:
+            response = requests.get(m3u8_url, headers=self.headers, timeout=self.timeout)
+            response.raise_for_status()
+            
+            content = response.text
+            segments = self._parse_m3u8(m3u8_url, content)
+            
+            return {
+                'total_segments': len(segments),
+                'first_segments': segments[:3] if segments else [],
+                'content_preview': content[:200] + "..." if len(content) > 200 else content
+            }
+            
+        except Exception as e:
+            print(f"Error obteniendo información del stream: {e}")
+            return None
+    
+    def estimate_m3u8_size(self, m3u8_url, sample_segments=3):
+        try:
+            response = requests.get(m3u8_url, headers=self.headers, timeout=self.timeout)
+            response.raise_for_status()
+            
+            content = response.text
+            segments = self._parse_m3u8(m3u8_url, content)
+            
+            if not segments:
+                return {'error': 'No se encontraron segmentos'}
+            
+            total_segments = len(segments)
+            
+            sample_indices = []
+            if total_segments <= sample_segments:
+                sample_indices = range(total_segments)
+            else:
+                sample_indices = [0, total_segments // 2, total_segments - 1]
+                if sample_segments > 3:
+                    step = total_segments // sample_segments
+                    sample_indices = [i * step for i in range(sample_segments)]
+            
+            total_sample_size = 0
+            successful_samples = 0
+            segment_sizes = []
+            
+            for i in sample_indices:
+                try:
+                    segment_response = requests.head(
+                        segments[i], 
+                        headers=self.headers, 
+                        timeout=self.timeout
+                    )
+                    
+                    if segment_response.status_code == 200 and 'Content-Length' in segment_response.headers:
+                        size = int(segment_response.headers['Content-Length'])
+                        total_sample_size += size
+                        segment_sizes.append(size)
+                        successful_samples += 1
+                    else:
+                        segment_response = requests.get(
+                            segments[i], 
+                            headers=self.headers, 
+                            timeout=self.timeout,
+                            stream=True
+                        )
+                        if segment_response.status_code == 200 and 'Content-Length' in segment_response.headers:
+                            size = int(segment_response.headers['Content-Length'])
+                            total_sample_size += size
+                            segment_sizes.append(size)
+                            successful_samples += 1
+                        
+                except:
+                    continue
+            
+            if successful_samples == 0:
+                return {'error': 'No se pudieron obtener tamaños de segmentos'}
+            
+            avg_segment_size = total_sample_size / successful_samples
+            estimated_total_size = avg_segment_size * total_segments
+            
+            size_mb = estimated_total_size / (1024 * 1024)
+            size_gb = estimated_total_size / (1024 * 1024 * 1024)
+            
+            return {
+                'success': True,
+                'total_segments': total_segments,
+                'sampled_segments': successful_samples,
+                'estimated_total_bytes': int(estimated_total_size),
+                'estimated_total_mb': round(size_mb, 2),
+                'estimated_total_gb': round(size_gb, 2),
+                'avg_segment_size_bytes': int(avg_segment_size),
+                'segment_sizes': segment_sizes,
+                'confidence': f"{(successful_samples / len(sample_indices)) * 100:.1f}%"
+            }
+            
+        except Exception as e:
+            return {'error': f'Error al estimar tamaño: {str(e)}'}
+    
+    def download(self, m3u8_url, output_file="video_output.ts", temp_dir="temp_segments"):
+        if self.is_downloading:
+            return {'success': False, 'error': 'Ya hay una descarga en progreso'}
+        
+        self.is_downloading = True
+        self.cancel_requested = False
+        
+        result = {
+            'success': False,
+            'downloaded_segments': 0,
+            'total_segments': 0,
+            'failed_segments': [],
+            'output_file': output_file,
+            'time_elapsed': 0
+        }
+        
+        start_time = time.time()
+        
+        try:
+            print("Obteniendo lista de segmentos...")
+            response = requests.get(m3u8_url, headers=self.headers, timeout=self.timeout)
+            response.raise_for_status()
+            
+            content = response.text
+            segments = self._parse_m3u8(m3u8_url, content)
+            
+            if not segments:
+                result['error'] = "No se encontraron segmentos en el archivo m3u8"
+                return result
+            
+            result['total_segments'] = len(segments)
+            print(f"Encontrados {len(segments)} segmentos")
+            
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            self._update_progress(0, len(segments))
+            
+            downloaded_count = 0
+            failed_segments = []
+            segment_files = []
+            
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                futures = {}
+                
+                for i, segment_url in enumerate(segments):
+                    if self.cancel_requested:
+                        break
+                        
+                    segment_file = os.path.join(temp_dir, f"segment_{i:06d}.ts")
+                    segment_files.append((i, segment_file))
+                    
+                    future = executor.submit(
+                        self._download_with_retry, 
+                        segment_url, 
+                        segment_file, 
+                        i, 
+                        len(segments)
+                    )
+                    futures[future] = i
+                
+                for future in as_completed(futures):
+                    if self.cancel_requested:
+                        break
+                        
+                    segment_index = futures[future]
+                    success, info = future.result()
+                    
+                    if success:
+                        downloaded_count += 1
+                        speed = info if isinstance(info, (int, float)) else 0
+                        self._update_progress(downloaded_count, len(segments), speed)
+                    else:
+                        failed_segments.append(segment_index)
+                        print(f"Error en segmento {segment_index + 1}: {info}")
+            
+            if self.cancel_requested:
+                result['error'] = "Descarga cancelada por el usuario"
+                return result
+            
+            if downloaded_count > 0:
+                print("Combinando segmentos...")
+                with open(output_file, 'wb') as output:
+                    for i, segment_file in sorted(segment_files, key=lambda x: x[0]):
+                        if os.path.exists(segment_file):
+                            try:
+                                with open(segment_file, 'rb') as seg:
+                                    output.write(seg.read())
+                                os.remove(segment_file)
+                            except Exception as e:
+                                print(f"Error combinando segmento {i}: {e}")
+                                failed_segments.append(i)
+                
+                try:
+                    os.rmdir(temp_dir)
+                except:
+                    pass
+                
+                result['success'] = True
+                result['downloaded_segments'] = downloaded_count
+                result['failed_segments'] = failed_segments
+                result['success_rate'] = (downloaded_count / len(segments)) * 100
+                
+            else:
+                result['error'] = "No se pudieron descargar segmentos"
+            
+        except Exception as e:
+            result['error'] = f"Error general: {e}"
+        
+        finally:
+            time_elapsed = time.time() - start_time
+            result['time_elapsed'] = time_elapsed
+            self.is_downloading = False
+            self._update_progress(result.get('downloaded_segments', 0), 
+                                result.get('total_segments', 1), 0)
+            
+            print(f"\nTiempo total: {time_elapsed:.2f} segundos")
+            if result['success']:
+                print(f"Descarga completada: {result['downloaded_segments']}/{result['total_segments']} segmentos")
+                print(f"Tasa de éxito: {result['success_rate']:.1f}%")
+            else:
+                print(f"Error: {result.get('error', 'Desconocido')}")
+            
+            return result
+    
+    def cancel_download(self):
+        self.cancel_requested = True
+        print("Cancelación solicitada...")
+
 def get_history_file():
     return 'download_history.json'
 
@@ -2262,9 +2565,15 @@ def upload_file(filepath, download_id):
             'message': str(e)
         }
 
+
+
+
+def is_m3u8_url(url):
+    """Verifica si una URL es un archivo m3u8"""
+    return url.lower().endswith('.m3u8') or 'm3u8' in url.lower()def                  
+                    # Calcular progreso descarga
 def download_and_upload(download_id, url):
     try:
-        # Configurar información inicial
         downloads[download_id] = {
             'url': url,
             'filename': 'Obteniendo información...',
@@ -2284,86 +2593,148 @@ def download_and_upload(download_id, url):
             'message': ''
         }
         
-        # Descargar el archivo
-        with requests.get(url, stream=True, timeout=10) as r:
-            r.raise_for_status()
+        # Verificar si es un archivo M3U8
+        if is_m3u8_url(url):
+            # Usar M3U8Downloader para streams
+            downloader = M3U8Downloader(max_workers=3, timeout=30, retries=2)
             
-            # Obtener nombre del archivo
-            content_disposition = r.headers.get('content-disposition')
-            if content_disposition:
-                filename = content_disposition.split('filename=')[1].strip('"\'')
-            else:
-                filename = os.path.basename(urlparse(url).path) or f'descarga-{download_id[:6]}'
+            # Obtener información del stream
+            stream_info = downloader.get_stream_info(url)
+            if not stream_info:
+                downloads[download_id].update({
+                    'status': 'error',
+                    'message': 'No se pudo obtener información del stream M3U8'
+                })
+                return
             
-            total_size = int(r.headers.get('content-length', 0))
-
+            # Estimar tamaño
+            size_info = downloader.estimate_m3u8_size(url)
+            if 'error' in size_info:
+                downloads[download_id].update({
+                    'status': 'error',
+                    'message': f'Error estimando tamaño: {size_info["error"]}'
+                })
+                return
+            
+            total_size = size_info['estimated_total_bytes']
+            filename = f"stream_{download_id[:8]}.ts"
+            
             if limited(total_size):
                 downloads[download_id].update({
                     'status': 'error',
                     'upload_status': 'Error Limited!',
-                    'message': "A exedido el limite de Archivos, Limpie el Historial!."})
+                    'message': "A exedido el limite de Archivos, Limpie el Historial!."
+                })
                 return
             
             downloads[download_id].update({
-                'filename': secure_filename(filename),
+                'filename': filename,
                 'total_size': total_size
             })
             
-            # Guardar archivo localmente
-            filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], downloads[download_id]['filename'])
-            with open(filepath, 'wb') as f:
-                start_time = time.time()
-                for chunk in r.iter_content(chunk_size=8192):
-                    if downloads[download_id]['stop_event'].is_set():
-                        downloads[download_id]['status'] = 'canceled'
-                        if os.path.exists(filepath):
-                            os.remove(filepath)
-                        return
-                    
-                    f.write(chunk)
-                    downloaded = f.tell()
-                    
-                    # Calcular progreso descarga
-                    current_time = time.time()
-                    time_elapsed = current_time - start_time
-                    speed = downloaded / time_elapsed if time_elapsed > 0 else 0
-                    eta = (total_size - downloaded) / speed if speed > 0 and total_size > 0 else 0
-                    
-                    downloads[download_id].update({
-                        'downloaded': downloaded,
-                        'download_speed': speed,
-                        'download_eta': format_time(eta),
-                        'last_update': current_time
-                    })
+            # Descargar el stream
+            filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], filename)
             
-            # Descarga completada
-            downloads[download_id]['status'] = 'uploading'
-            
-            # Iniciar subida del archivo
-            upload_result = upload_file(filepath, download_id)
-            
-            if upload_result['success']:
+            def progress_callback(current, total, percentage, speed):
+                if downloads[download_id]['stop_event'].is_set():
+                    downloader.cancel_download()
+                    return
+                
                 downloads[download_id].update({
-                    'status': 'completed',
-                    'upload_status': 'completed',
-                    'public_url': upload_result['public_url'],
-                    'message': upload_result['message']
+                    'downloaded': current * (total_size / total) if total > 0 else 0,
+                    'download_speed': speed * 1024,  # Convertir KB/s a Bytes/s
+                    'download_eta': format_time((total - current) / speed) if speed > 0 else '--:--:--'
                 })
-            else:
+            
+            downloader.set_progress_callback(progress_callback)
+            
+            result = downloader.download(url, filepath, f"temp_segments_{download_id}")
+            
+            if not result['success']:
                 downloads[download_id].update({
                     'status': 'error',
-                    'upload_status': 'error',
-                    'message': upload_result['message']
+                    'message': result.get('error', 'Error desconocido en la descarga M3U8')
                 })
+                return
+                
+            downloads[download_id]['status'] = 'uploading'
+            
+        else:
+            # Descarga normal de archivo (código original)
+            with requests.get(url, stream=True, timeout=10) as r:
+                r.raise_for_status()
+                
+                content_disposition = r.headers.get('content-disposition')
+                if content_disposition:
+                    filename = content_disposition.split('filename=')[1].strip('"\'')
+                else:
+                    filename = os.path.basename(urlparse(url).path) or f'descarga-{download_id[:6]}'
+                
+                total_size = int(r.headers.get('content-length', 0))
+
+                if limited(total_size):
+                    downloads[download_id].update({
+                        'status': 'error',
+                        'upload_status': 'Error Limited!',
+                        'message': "A exedido el limite de Archivos, Limpie el Historial!."
+                    })
+                    return
+                
+                downloads[download_id].update({
+                    'filename': secure_filename(filename),
+                    'total_size': total_size
+                })
+                
+                filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], downloads[download_id]['filename'])
+                with open(filepath, 'wb') as f:
+                    start_time = time.time()
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if downloads[download_id]['stop_event'].is_set():
+                            downloads[download_id]['status'] = 'canceled'
+                            if os.path.exists(filepath):
+                                os.remove(filepath)
+                            return
+                        
+                        f.write(chunk)
+                        downloaded = f.tell()
+                        
+                        current_time = time.time()
+                        time_elapsed = current_time - start_time
+                        speed = downloaded / time_elapsed if time_elapsed > 0 else 0
+                        eta = (total_size - downloaded) / speed if speed > 0 and total_size > 0 else 0
+                        
+                        downloads[download_id].update({
+                            'downloaded': downloaded,
+                            'download_speed': speed,
+                            'download_eta': format_time(eta),
+                            'last_update': current_time
+                        })
+                
+                downloads[download_id]['status'] = 'uploading'
+        
+        # Subir el archivo (código original)
+        upload_result = upload_file(filepath, download_id)
+        
+        if upload_result['success']:
+            downloads[download_id].update({
+                'status': 'completed',
+                'upload_status': 'completed',
+                'public_url': upload_result['public_url'],
+                'message': upload_result['message']
+            })
+        else:
+            downloads[download_id].update({
+                'status': 'error',
+                'upload_status': 'error',
+                'message': upload_result['message']
+            })
     
     except Exception as e:
         downloads[download_id].update({
             'status': 'error',
             'upload_status': 'error',
             'message': str(e)
-        })
-
-def format_time(seconds):
+        })descargarmat_time(seconds):
     return str(timedelta(seconds=seconds)).split('.')[0]
 
 def On_Start_Thread():
