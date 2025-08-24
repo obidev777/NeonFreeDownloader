@@ -2581,7 +2581,7 @@ def start_download():
 @app.route('/progress/<download_id>')
 def progress(download_id):
     if download_id not in downloads:
-        return jsonify({'error': 'ID de descarga no válido'})
+        return jsonify({'status': 'uploading'})
     
     download = downloads[download_id]
     
