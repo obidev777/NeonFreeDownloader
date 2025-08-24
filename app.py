@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 import uuid
 import webbrowser
 from rev import *
+from urllib.parse import urljoin
 
 app = Flask(__name__)
 app.config['DOWNLOAD_FOLDER'] = ''
@@ -2140,7 +2141,7 @@ class M3U8Downloader:
                 if line.startswith('http'):
                     segments.append(line)
                 else:
-                    segments.append(urljoin(base_url, line))
+	                    segments.append(urljoin(base_url, line))
         
         return segments
     
