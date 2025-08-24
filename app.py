@@ -2119,8 +2119,12 @@ def load_history(filter=None):
             patron = r'^file\d+\.temp$'
             for f in files:
                 if not re.match(patron, f['name']):
-                    size = int(f['name'].split('.temp')[1])
-                    filename = f['name'].split('.temp')[0]
+                    if '.temp' in f['name']:
+                        size = int(f['name'].split('.temp')[1])
+                        filename = f['name'].split('.temp')[0]
+                    else:
+                        filename = f['name']
+                        size = cli.get_filesize_from_url(f['url'])
                     parts.append(f['url'])
                     break
             index = 0
