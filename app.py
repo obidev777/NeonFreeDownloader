@@ -2317,7 +2317,7 @@ def upload_file(filepath, download_id):
                     temp = filepath + f'.temp{file_size}'
                     temp_file = open(temp,'wb')
                     while True:
-                        chunk = f.read(max_split_temp)
+                        chunk = f.read(1024*1024*10)
                         if not chunk:
                             break
                         temp_file.write(chunk)
