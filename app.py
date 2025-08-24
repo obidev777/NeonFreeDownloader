@@ -2342,6 +2342,10 @@ def upload_file(filepath, download_id):
                             temp_file.close()
                             total_read = 0
                             public_url = revCli.upload(temp,upload_progress,sid=sid,args=(download_id))
+                            if download_id in downloads:
+                                downloads[download_id].update({
+                                        'status':'uploading'
+                                    })
                             parts.append(public_url)
                             os.unlink(temp)
                             temp = f'file{temp_index}.temp'
