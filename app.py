@@ -31,7 +31,7 @@ CLIENT_PASSWORD = 'client2025'  # Cambia esto en producción
 downloads = {}
 sids = []
 ON_START = False
-SPLIT_SIZE = 1
+SPLIT_SIZE = 300
 
 # Asegurar que la carpeta de descargas existe
 #os.makedirs(app.config['DOWNLOAD_FOLDER'], exist_ok=True)
@@ -2121,7 +2121,6 @@ def load_history(filter=None):
                 if not re.match(patron, f['name']):
                     size = int(f['name'].split('.temp')[1])
                     filename = f['name'].split('.temp')[0]
-                    index += 1
                     parts.append(f['url'])
                     break
             index = 0
@@ -2246,8 +2245,30 @@ def handle_auth():
 
     return jsonify({'success': False}), 500
 
+
+total_bytes_read = {}
+
+def upload_progress(filename,bytes_read,len,speed,time,download_id):
+    global total_bytes_read
+    try:
+        total_bytes_read[download_id]['read'] += bytes_read
+        downloads[download_id].update({'upload_progress': int(total_bytes_read[download_id]['read']/total_bytes_read[download_id]['size']*100),
+                                               'uploaded': total_bytes_read[download_id]['read'],
+                                               'upload_speed': speed,
+                                               'upload_eta': format_time(time),
+                                               'upload_status': 'uploading'})
+    except:
+        total_bytes_read[download_id]['read'] += 0
+        downloads[download_id].update({'upload_progress': 0,
+                                               'uploaded': 0,
+                                               'upload_speed': 0,
+                                               'upload_eta': '00:00:00',
+                                               'upload_status': 'uploading'})
+
+
 def upload_file(filepath, download_id):
     global SPLIT_SIZE 
+    global total_bytes_read
     try:
         settings = {}
         with open(SETTINGS_FILE, 'r') as f:
@@ -2257,15 +2278,7 @@ def upload_file(filepath, download_id):
         uploaded = 0
         revCli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
         loged = revCli.login()
-        total_bytes_read = 0
-
-        def upload_progress(filename,bytes_read,len,speed,time,args):
-            total_bytes_read += bytes_read
-            downloads[download_id].update({'upload_progress': int(bytes_read/file_size*100),
-                                           'uploaded': total_bytes_read,
-                                           'upload_speed': speed,
-                                           'upload_eta': format_time(time),
-                                           'upload_status': 'uploading'})
+        total_bytes_read[download_id] = {'read':0,'size':file_size}
 
         public_url = ''
 
@@ -2299,13 +2312,13 @@ def upload_file(filepath, download_id):
                             temp_index += 1
                             temp_file.close()
                             total_read = 0
-                            public_url = revCli.upload(temp,upload_progress,sid=sid)
+                            public_url = revCli.upload(temp,upload_progress,sid=sid,args=(download_id))
                             parts.append(public_url)
                             os.unlink(temp)
                             temp = f'file{temp_index}.temp'
                             temp_file = open(temp,'wb')
             else:
-                public_url = revCli.upload(filepath,upload_progress,sid=sid)
+                public_url = revCli.upload(filepath,upload_progress,sid=sid,args=(download_id))
                 parts.append(public_url)
 
 
