@@ -2239,7 +2239,7 @@ def handle_downloads():
     if request.method == 'GET':
         dl_list = []
         for id in downloads:
-            if downloads[id]['status'] == 'completed':
+            if downloads[id]['status'] == 'completed' or downloads[id]['status'] == 'error':
                 continue
             item = {}
             item['id'] = id
@@ -2519,6 +2519,7 @@ def download_and_upload(download_id, url):
             'upload_status': 'error',
             'message': str(e)
         })
+
         
 def On_Start_Thread():
     global Cloud_Auth
@@ -2580,7 +2581,7 @@ def progress(download_id):
     global downloads
     if download_id not in downloads:
                     downloads[download_id] = {
-                        'url': url,
+                        'url': '',
                         'filename': 'Obteniendo información...',
                         'total_size': 0,
                         'downloaded': 0,
