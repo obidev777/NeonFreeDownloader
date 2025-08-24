@@ -2663,6 +2663,97 @@ def download_and_upload(download_id, url):
             # Descarga normal de archivo (código original)
             with requests.get(url, stream=True, timeout=10) as r:
                 r.raise_for_status()
+def download_and_upload(download_id, url):
+    try:
+        downloads[download_id] = {
+            'url': url,
+            'filename': 'Obteniendo información...',
+            'total_size': 0,
+            'downloaded': 0,
+            'download_speed': 0,
+            'download_eta': '--:--:--',
+            'upload_progress': 0,
+            'upload_speed': 0,
+            'uploaded': 0,
+            'status': 'downloading',
+            'upload_status': 'pending',
+            'upload_eta': '--:--:--',
+            'public_url': None,
+            'stop_event': threading.Event(),
+            'start_time': time.time(),
+            'message': ''
+        }
+        
+        # Verificar si es un archivo M3U8
+        if is_m3u8_url(url):
+            # Usar M3U8Downloader para streams
+            downloader = M3U8Downloader(max_workers=3, timeout=30, retries=2)
+            
+            # Obtener información del stream
+            stream_info = downloader.get_stream_info(url)
+            if not stream_info:
+                downloads[download_id].update({
+                    'status': 'error',
+                    'message': 'No se pudo obtener información del stream M3U8'
+                })
+                return
+            
+            # Estimar tamaño
+            size_info = downloader.estimate_m3u8_size(url)
+            if 'error' in size_info:
+                downloads[download_id].update({
+                    'status': 'error',
+                    'message': f'Error estimando tamaño: {size_info["error"]}'
+                })
+                return
+            
+            total_size = size_info['estimated_total_bytes']
+            filename = f"stream_{download_id[:8]}.ts"
+            
+            if limited(total_size):
+                downloads[download_id].update({
+                    'status': 'error',
+                    'upload_status': 'Error Limited!',
+                    'message': "A exedido el limite de Archivos, Limpie el Historial!."
+                })
+                return
+            
+            downloads[download_id].update({
+                'filename': filename,
+                'total_size': total_size
+            })
+            
+            # Descargar el stream
+            filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], filename)
+            
+            def progress_callback(current, total, percentage, speed):
+                if downloads[download_id]['stop_event'].is_set():
+                    downloader.cancel_download()
+                    return
+                
+                downloads[download_id].update({
+                    'downloaded': current * (total_size / total) if total > 0 else 0,
+                    'download_speed': speed * 1024,  # Convertir KB/s a Bytes/s
+                    'download_eta': format_time((total - current) / speed) if speed > 0 else '--:--:--'
+                })
+            
+            downloader.set_progress_callback(progress_callback)
+            
+            result = downloader.download(url, filepath, f"temp_segments_{download_id}")
+            
+            if not result['success']:
+                downloads[download_id].update({
+                    'status': 'error',
+                    'message': result.get('error', 'Error desconocido en la descarga M3U8')
+                })
+                return
+                
+            downloads[download_id]['status'] = 'uploading'
+            
+        else:
+            # Descarga normal de archivo (código original)
+            with requests.get(url, stream=True, timeout=10) as r:
+                r.raise_for_status()
                 
                 content_disposition = r.headers.get('content-disposition')
                 if content_disposition:
@@ -2734,9 +2825,8 @@ def download_and_upload(download_id, url):
             'status': 'error',
             'upload_status': 'error',
             'message': str(e)
-        })descargarmat_time(seconds):
-    return str(timedelta(seconds=seconds)).split('.')[0]
-
+        })
+        
 def On_Start_Thread():
     global Cloud_Auth
     global download_history
