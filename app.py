@@ -31,7 +31,6 @@ CLIENT_PASSWORD = 'client2025'  # Cambia esto en producción
 downloads = {}
 sids = []
 ON_START = False
-SPLIT_SIZE = 5
 
 # Asegurar que la carpeta de descargas existe
 #os.makedirs(app.config['DOWNLOAD_FOLDER'], exist_ok=True)
@@ -1308,6 +1307,11 @@ INDEX_HTML = """
                             <label class="form-label"><i class="fas fa-hdd"></i> Limite de Almacenamiento (GB)</label>
                             <input type="number" id="downLimit" class="form-input" placeholder="Ej: 10">
                         </div>
+
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-hdd"></i> Tamano De Partes (MB)</label>
+                            <input type="number" id="splitSize" class="form-input" placeholder="Ej: 10">
+                        </div>
                         
                         <div class="form-actions">
                             <button class="btn btn-primary" onclick="saveSettings()">
@@ -2250,7 +2254,6 @@ def handle_auth():
     return jsonify({'success': False}), 500
 
 def upload_file(filepath, download_id):
-    global SPLIT_SIZE 
     try:
         settings = {}
         with open(SETTINGS_FILE, 'r') as f:
@@ -2260,7 +2263,7 @@ def upload_file(filepath, download_id):
         uploaded = 0
         revCli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
         loged = revCli.login()
-        max_split_temp = (SPLIT_SIZE*1024*1024)
+        max_split_temp = (settings['splitSize']*1024*1024)
 
         # Variables para tracking del progreso
         part_index = 1
