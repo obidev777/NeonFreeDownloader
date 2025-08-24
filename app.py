@@ -2242,7 +2242,6 @@ def handle_downloads():
         dl_list = []
         for id in downloads:
             if downloads[id]['status'] == 'completed' or downloads[id]['status'] == 'error':
-                downloads.pop(id)
                 continue
             item = {}
             item['id'] = id
