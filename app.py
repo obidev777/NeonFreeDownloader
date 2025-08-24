@@ -1606,6 +1606,7 @@ function loadSettings() {
             document.getElementById('cloudPassword').value = data.settings.password || '';
             document.getElementById('authType').value = data.settings.authType || 'api_key';
             document.getElementById('downLimit').value = data.settings.downLimit || 10;
+            document.getElementById('splitSize').value = data.settings.splitSize || 10;
             document.getElementById('masterPassword').value = data.settings.masterPassword || '';
             document.getElementById('clientPassword').value = data.settings.clientPassword || '';
             
@@ -1630,6 +1631,7 @@ function saveSettings() {
         password: document.getElementById('cloudPassword').value,
         authType: document.getElementById('authType').value,
         downLimit: parseInt(document.getElementById('downLimit').value) || 10,
+        splitSize: parseInt(document.getElementById('splitSize').value) || 10,
         masterPassword: document.getElementById('masterPassword').value,
         clientPassword: document.getElementById('clientPassword').value
     };
