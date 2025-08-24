@@ -1176,48 +1176,54 @@ INDEX_HTML = """
 
                 <!-- Progreso de descarga -->
                 <div class="card progress-card" id="progress-container" style="display: none;padding:15px;">
-                    <div class="progress-section">
-                        <div class="progress-header">
-                            <h3><i class="fas fa-download"></i> Descarga</h3>
-                            <div class="file-info">
-                                <span id="filename" class="filename"></span>
-                                <span id="file-size" class="file-size"></span>
-                            </div>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar">
-                                <div id="download-progress" class="progress"></div>
-                            </div>
-                            <div class="progress-info">
-                                <span id="download-progress-percent" class="progress-percent">0%</span>
-                                <span id="download-speed" class="speed"><i class="fas fa-tachometer-alt"></i> 0 KB/s</span>
-                                <span id="download-eta" class="eta"><i class="far fa-clock"></i> --:--:--</span>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Progreso de descarga -->
+<div class="progress-section">
+    <div class="progress-header">
+        <h3><i class="fas fa-download"></i> Descarga</h3>
+        <div class="file-info">
+            <span id="filename" class="filename"></span>
+            <span id="file-size" class="file-size"></span>
+        </div>
+    </div>
+    <div class="progress-bar-container">
+        <div class="progress-bar">
+            <div id="download-progress" class="progress"></div>
+        </div>
+        <div class="progress-info">
+            <span id="download-progress-percent" class="progress-percent">0%</span>
+            <span id="download-speed" class="speed"><i class="fas fa-tachometer-alt"></i> 0 KB/s</span>
+            <span id="download-eta" class="eta"><i class="far fa-clock"></i> --:--:--</span>
+        </div>
+    </div>
+</div>
 
-                    <div class="progress-section">
-                        <div class="progress-header">
-                            <h3><i class="fas fa-upload"></i> Subida</h3>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar">
-                                <div id="upload-progress" class="progress"></div>
-                            </div>
-                            <div class="progress-info">
-                                <span id="upload-progress-percent" class="progress-percent">0%</span>
-                                <span id="upload-speed" class="speed"><i class="fas fa-tachometer-alt"></i> 0 KB/s</span>
-                                <span id="upload-eta" class="eta"><i class="far fa-clock"></i> --:--:--</span>
-                            </div>
-                        </div>
-                    </div>
+<!-- Progreso de subida -->
+<div class="progress-section">
+    <div class="progress-header">
+        <h3><i class="fas fa-upload"></i> Subida</h3>
+        <div class="file-info">
+            <!-- Información de partes se mostrará aquí -->
+            <span id="parts-info" class="file-size" style="font-style: italic; color: var(--color-text-light); display: block; margin-top: 5px;"></span>
+        </div>
+    </div>
+    <div class="progress-bar-container">
+        <div class="progress-bar">
+            <div id="upload-progress" class="progress"></div>
+        </div>
+        <div class="progress-info">
+            <span id="upload-progress-percent" class="progress-percent">0%</span>
+            <span id="upload-speed" class="speed"><i class="fas fa-tachometer-alt"></i> 0 KB/s</span>
+            <span id="upload-eta" class="eta"><i class="far fa-clock"></i> --:--:--</span>
+        </div>
+    </div>
+</div>
 
-                    <div id="status" class="status downloading">
-                        <i class="fas fa-sync-alt fa-spin"></i> Preparando descarga...
-                    </div>
-                    <button id="cancel-btn" class="btn btn-cancel" onclick="cancelDownload()">
-                        <i class="fas fa-times-circle"></i> Cancelar Proceso
-                    </button>
+<div id="status" class="status downloading">
+    <i class="fas fa-sync-alt fa-spin"></i> Preparando descarga...
+</div>
+<button id="cancel-btn" class="btn btn-cancel" onclick="cancelDownload()">
+    <i class="fas fa-times-circle"></i> Cancelar Proceso
+</button>
                 </div>
             </div>
 
@@ -1893,6 +1899,14 @@ function showProgress(show = true) {
     document.getElementById('progress-container').style.display = show ? 'block' : 'none';
 }
 
+// funcion de formato parts
+function formatPartsInfo(partsInfo) {
+    if (!partsInfo || !partsInfo.is_split) return '';
+    
+    return `Parte ${partsInfo.current_part}/${partsInfo.total_parts} ` +
+           `(${partsInfo.completed_parts}/${partsInfo.total_parts} completadas)`;
+}
+
 // Actualizar progreso
 function updateProgress() {
     if (!downloadId) return;
@@ -1919,30 +1933,63 @@ function updateProgress() {
         // Actualizar informacion de subida
         document.getElementById('upload-progress').style.width = data.upload_progress + '%';
         document.getElementById('upload-progress-percent').textContent = data.upload_progress + '%';
-        document.getElementById('upload-speed').innerHTML = `<i class="fas fa-tachometer-alt"></i> ${formatSpeed(data.upload_speed || 0)}`;
+        
+        // MOSTRAR INFORMACION DE PARTES
+        let uploadSpeedText = `<i class="fas fa-tachometer-alt"></i> ${formatSpeed(data.upload_speed || 0)}`;
+        let partsInfoHTML = '';
+        
+        if (data.parts_info && data.parts_info.is_split) {
+            // Información en la velocidad
+            uploadSpeedText += ` | Parte ${data.parts_info.current_part}/${data.parts_info.total_parts}`;
+            
+            // Información detallada en el área de partes
+            partsInfoHTML = `📦 Archivo dividido en ${data.parts_info.total_parts} partes | `;
+            partsInfoHTML += `🔄 Subiendo parte ${data.parts_info.current_part} | `;
+            partsInfoHTML += `✅ ${data.parts_info.completed_parts} completadas`;
+        }
+        
+        document.getElementById('upload-speed').innerHTML = uploadSpeedText;
+        document.getElementById('parts-info').innerHTML = partsInfoHTML;
         document.getElementById('upload-eta').innerHTML = `<i class="far fa-clock"></i> ${data.upload_eta || '--:--:--'}`;
 
         // Actualizar estado general
         const statusElement = document.getElementById('status');
         if (data.status === 'completed') {
-            statusElement.innerHTML = `<i class="fas fa-check-circle"></i> ¡Proceso completado con exito!`;
+            let statusText = `<i class="fas fa-check-circle"></i> ¡Proceso completado con éxito!`;
+            if (data.parts_info && data.parts_info.is_split) {
+                statusText = `<i class="fas fa-check-circle"></i> ¡Archivo completo subido en ${data.parts_info.total_parts} partes!`;
+            }
+            statusElement.innerHTML = statusText;
             statusElement.className = 'status completed';
             clearInterval(updateInterval);
             resetDownloadButton();
             document.getElementById('btn-text').textContent = 'Nueva descarga';
             showDownloadModal(data);
             updateStorageInfo();
+            
         } else if (data.status === 'downloading') {
             statusElement.innerHTML = `<i class="fas fa-sync-alt fa-spin"></i> Descargando...`;
             statusElement.className = 'status downloading';
+            
         } else if (data.status === 'uploading') {
-            statusElement.innerHTML = `<i class="fas fa-sync-alt fa-spin"></i> Subiendo archivo...`;
+            // MOSTRAR INFORMACION DE PARTES EN EL ESTADO
+            let statusText = `<i class="fas fa-sync-alt fa-spin"></i> Subiendo archivo...`;
+            if (data.parts_info && data.parts_info.is_split) {
+                statusText = `<i class="fas fa-sync-alt fa-spin"></i> Subiendo parte ${data.parts_info.current_part}/${data.parts_info.total_parts}...`;
+            }
+            statusElement.innerHTML = statusText;
             statusElement.className = 'status uploading';
+            
         } else if (data.status === 'canceled') {
-            statusElement.innerHTML = `<i class="fas fa-times-circle"></i> Proceso cancelado`;
+            let statusText = `<i class="fas fa-times-circle"></i> Proceso cancelado`;
+            if (data.parts_info && data.parts_info.is_split) {
+                statusText = `<i class="fas fa-times-circle"></i> Subida cancelada (${data.parts_info.completed_parts}/${data.parts_info.total_parts} partes completadas)`;
+            }
+            statusElement.innerHTML = statusText;
             statusElement.className = 'status canceled';
             clearInterval(updateInterval);
             resetDownloadButton();
+            
         } else if (data.status === 'error') {
             statusElement.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${data.message || 'Error desconocido'}`;
             statusElement.className = 'status error';
@@ -1953,6 +2000,39 @@ function updateProgress() {
     .catch(error => {
         console.error('Error al actualizar progreso:', error);
     });
+}
+
+// Funciones auxiliares de formato
+function formatFileSize(bytes) {
+    if (!bytes) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatSpeed(bytesPerSecond) {
+    if (!bytesPerSecond) return '0 KB/s';
+    const k = 1024;
+    const sizes = ['Bytes/s', 'KB/s', 'MB/s', 'GB/s'];
+    const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
+    return parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatTime(seconds) {
+    if (!seconds || seconds === Infinity) return '--:--:--';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Función para resetear el botón de descarga
+function resetDownloadButton() {
+    const downloadBtn = document.getElementById('download-btn');
+    const btnText = document.getElementById('btn-text');
+    downloadBtn.disabled = false;
+    btnText.textContent = 'Descargar';
 }
 
 function getUploadStatusText(status) {
@@ -1966,6 +2046,7 @@ function getUploadStatusText(status) {
 }
 
 // Mostrar modal de descarga completada
+// En la función showDownloadModal, puedes agregar información de partes
 function showDownloadModal(data) {
     const modal = document.getElementById('downloadModal');
     const downloadLink = document.getElementById('fileDownloadLink');
@@ -1974,7 +2055,13 @@ function showDownloadModal(data) {
     // Configurar informacion del archivo
     document.getElementById('modal-filename').textContent = data.filename || 'Archivo descargado';
     document.getElementById('modal-filesize').textContent = formatFileSize(data.total_size || 0);
-    document.getElementById('modal-location').textContent = data.public_url ? 'Servidor remoto' : 'Local';
+    
+    // MOSTRAR INFORMACION DE PARTES SI APLICA
+    let locationText = data.public_url ? 'Servidor remoto' : 'Local';
+    if (data.parts_info && data.parts_info.is_split) {
+        locationText += ` | Dividido en ${data.parts_info.total_parts} partes`;
+    }
+    document.getElementById('modal-location').textContent = locationText;
     
     // Configurar enlace de descarga
     if (data.public_url) {
@@ -2078,6 +2165,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 # Estructura para almacenar el historial
 download_history = []
+SPLIT_SIZE = 1
 
 
 def get_history_file():
@@ -2278,6 +2366,7 @@ def is_m3u8_url(url):
                     # Calcular progreso descarga
 
 def download_and_upload(download_id, url):
+    global SPLIT_SIZE
     try:
         downloads[download_id] = {
             'url': url,
@@ -2295,7 +2384,10 @@ def download_and_upload(download_id, url):
             'public_url': None,
             'stop_event': threading.Event(),
             'start_time': time.time(),
-            'message': ''
+            'message': '',
+            'parts': [],  # Nueva: lista para almacenar información de partes
+            'current_part': 0,
+            'total_parts': 1
         }
         
         # Verificar si es un archivo M3U8
@@ -2329,7 +2421,7 @@ def download_and_upload(download_id, url):
             })
             
             # Descargar el stream
-            filepath = '/'
+            filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], filename)
             
             def progress_m3u8(current, total, percentage, current_speed, avg_speed, eta, elapsed):
                 if downloads[download_id]['stop_event'].is_set():
@@ -2354,8 +2446,27 @@ def download_and_upload(download_id, url):
                 
             downloads[download_id]['status'] = 'uploading'
             
+            # Para M3U8, verificar si necesita división
+            CHUNK_SIZE = SPLIT_SIZE * 1024 * 1024  # 300MB
+            file_size = os.path.getsize(filepath)
+            needs_splitting = file_size > CHUNK_SIZE
+            
+            if needs_splitting:
+                # Calcular número de partes
+                num_parts = (file_size + CHUNK_SIZE - 1) // CHUNK_SIZE
+                downloads[download_id].update({
+                    'total_parts': num_parts,
+                    'parts': [{'size': 0, 'uploaded': 0, 'status': 'pending'} for _ in range(num_parts)]
+                })
+                
+                # Subir archivo dividido en partes
+                upload_result = upload_file_parts(filepath, download_id, CHUNK_SIZE)
+            else:
+                # Subir archivo completo
+                upload_result = upload_file(filepath, download_id)
+                
         else:
-            # Descarga normal de archivo (código original)
+            # Descarga normal de archivo
             with requests.get(url, stream=True, timeout=10) as r:
                 r.raise_for_status()
                 
@@ -2380,7 +2491,21 @@ def download_and_upload(download_id, url):
                     'total_size': total_size
                 })
                 
+                # Determinar si hay que dividir el archivo (más de 300MB)
+                CHUNK_SIZE = SPLIT_SIZE * 1024 * 1024  # 300MB
+                needs_splitting = total_size > CHUNK_SIZE
+                
+                if needs_splitting:
+                    # Calcular número de partes
+                    num_parts = (total_size + CHUNK_SIZE - 1) // CHUNK_SIZE
+                    downloads[download_id].update({
+                        'total_parts': num_parts,
+                        'parts': [{'size': 0, 'uploaded': 0, 'status': 'pending'} for _ in range(num_parts)]
+                    })
+                
                 filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], downloads[download_id]['filename'])
+                
+                # Descargar el archivo completo primero
                 with open(filepath, 'wb') as f:
                     start_time = time.time()
                     for chunk in r.iter_content(chunk_size=8192):
@@ -2407,8 +2532,13 @@ def download_and_upload(download_id, url):
                 
                 downloads[download_id]['status'] = 'uploading'
         
-        # Subir el archivo (código original)
-        upload_result = upload_file(filepath, download_id)
+                # Subir el archivo (dividido o completo)
+                if needs_splitting:
+                    # Subir archivo dividido en partes
+                    upload_result = upload_file_parts(filepath, download_id, CHUNK_SIZE)
+                else:
+                    # Subir archivo completo
+                    upload_result = upload_file(filepath, download_id)
         
         if upload_result['success']:
             downloads[download_id].update({
@@ -2430,6 +2560,163 @@ def download_and_upload(download_id, url):
             'upload_status': 'error',
             'message': str(e)
         })
+
+def upload_file_parts(filepath, download_id, chunk_size):
+    try:
+        settings = {}
+        with open(SETTINGS_FILE, 'r') as f:
+            settings = json.load(f)
+        
+        total_size = os.path.getsize(filepath)
+        filename = os.path.basename(filepath)
+        num_parts = downloads[download_id]['total_parts']
+        uploaded_total = 0
+        public_urls = []
+        
+        revCli = RevCli(settings['username'], settings['password'], 
+                       host=settings['cloudHost'], type=settings['authType'])
+        loged = revCli.login()
+
+        if not loged:
+            return {
+                'success': False,
+                'message': 'Error de autenticación en la nube'
+            }
+
+        Cloud_Auth['cookies'] = revCli.getsession().cookies.get_dict()
+        Cloud_Auth['host'] = revCli.host
+        Cloud_Auth['type'] = revCli.type
+        save_auth()
+
+        # Crear SID principal
+        main_sid = revCli.create_sid()
+        
+        # Función de progreso para partes individuales
+        def part_progress(part_index, bytes_read, total_bytes, speed, time_remaining):
+            # Actualizar el progreso de esta parte
+            downloads[download_id]['parts'][part_index].update({
+                'uploaded': bytes_read,
+                'size': total_bytes,
+                'status': 'uploading'
+            })
+            
+            # Calcular progreso total
+            uploaded_total = sum(part['uploaded'] for part in downloads[download_id]['parts'])
+            total_upload_size = sum(part['size'] for part in downloads[download_id]['parts'] if part['size'] > 0)
+            
+            # Si total_upload_size es 0, usar el tamaño conocido de las partes
+            if total_upload_size == 0 and downloads[download_id]['total_size'] > 0:
+                total_upload_size = downloads[download_id]['total_size']
+            
+            # Calcular velocidad y ETA total
+            if total_upload_size > 0:
+                upload_progress_percent = (uploaded_total / total_upload_size) * 100
+                current_time = time.time()
+                upload_start_time = downloads[download_id].get('upload_start_time', current_time)
+                time_elapsed = current_time - upload_start_time
+                overall_speed = uploaded_total / time_elapsed if time_elapsed > 0 else 0
+                remaining_bytes = total_upload_size - uploaded_total
+                overall_eta = remaining_bytes / overall_speed if overall_speed > 0 else 0
+            else:
+                upload_progress_percent = 0
+                overall_speed = 0
+                overall_eta = 0
+            
+            downloads[download_id].update({
+                'upload_progress': min(100, upload_progress_percent),
+                'uploaded': uploaded_total,
+                'upload_speed': overall_speed,
+                'upload_eta': format_time(overall_eta),
+                'current_part': part_index + 1
+            })
+
+        # Marcar tiempo de inicio de subida
+        downloads[download_id]['upload_start_time'] = time.time()
+        
+        # Subir cada parte
+        with open(filepath, 'rb') as f:
+            for part_index in range(num_parts):
+                if downloads[download_id]['stop_event'].is_set():
+                    return {
+                        'success': False,
+                        'message': 'Subida cancelada por el usuario'
+                    }
+                
+                # Calcular posición y tamaño de la parte
+                start_pos = part_index * chunk_size
+                end_pos = min(start_pos + chunk_size, total_size)
+                part_size = end_pos - start_pos
+                
+                # Crear archivo temporal para esta parte
+                part_filename = f"{filename}.part{part_index + 1:03d}"
+                part_filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], part_filename)
+                
+                # Leer y guardar la parte
+                f.seek(start_pos)
+                part_data = f.read(part_size)
+                with open(part_filepath, 'wb') as part_file:
+                    part_file.write(part_data)
+                
+                # Actualizar el tamaño de la parte en la estructura
+                downloads[download_id]['parts'][part_index]['size'] = part_size
+                
+                # Subir esta parte
+                part_public_url = revCli.upload(
+                    part_filepath, 
+                    lambda filename, bytes_read, total, speed, time, args: part_progress(
+                        part_index, bytes_read, total, speed, time
+                    ),
+                    sid=main_sid
+                )
+                
+                public_urls.append(part_public_url)
+                
+                # Marcar parte como completada
+                downloads[download_id]['parts'][part_index]['status'] = 'completed'
+                
+                # Limpiar archivo temporal
+                try:
+                    os.unlink(part_filepath)
+                except Exception as e:
+                    print(f"Error eliminando parte temporal {part_filepath}: {e}")
+        
+        # Limpiar archivo original
+        try:
+            os.unlink(filepath)
+        except Exception as e:
+            print(f"Error eliminando archivo original {filepath}: {e}")
+        
+        # Agregar al historial (tamaño completo)
+        add_to_history(filename, total_size, main_sid, public_urls[0] if public_urls else '')
+        
+        return {
+            'success': True,
+            'public_url': public_urls[0] if public_urls else '',  # Devolver URL de la primera parte
+            'message': f'Archivo subido en {num_parts} partes'
+        }
+        
+    except Exception as e:
+        # Limpiar archivos temporales en caso de error
+        try:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+        except:
+            pass
+        
+        # Limpiar partes temporales
+        filename_base = os.path.basename(filepath)
+        for part_index in range(downloads[download_id].get('total_parts', 0)):
+            part_filename = f"{filename_base}.part{part_index + 1:03d}"
+            part_filepath = os.path.join(app.config['DOWNLOAD_FOLDER'], part_filename)
+            try:
+                os.unlink(part_filepath)
+            except:
+                pass
+        
+        return {
+            'success': False,
+            'message': f'Error en subida por partes: {str(e)}'
+        }
         
 def On_Start_Thread():
     global Cloud_Auth
@@ -2500,6 +2787,17 @@ def progress(download_id):
     
     upload_progress = download.get('upload_progress', 0)
     
+    # Información adicional para archivos divididos
+    parts_info = None
+    if download.get('total_parts', 1) > 1:
+        completed_parts = sum(1 for part in download.get('parts', []) if part.get('status') == 'completed')
+        parts_info = {
+            'current_part': download.get('current_part', 0),
+            'total_parts': download['total_parts'],
+            'completed_parts': completed_parts,
+            'is_split': True
+        }
+    
     return jsonify({
         'filename': download['filename'],
         'total_size': download['total_size'],
@@ -2513,7 +2811,8 @@ def progress(download_id):
         'upload_status': download.get('upload_status', 'pending'),
         'status': download['status'],
         'public_url': download.get('public_url'),
-        'message': download.get('message', '')
+        'message': download.get('message', ''),
+        'parts_info': parts_info  # Nueva información de partes
     })
 
 @app.route('/cancel-download/<download_id>', methods=['POST'])
