@@ -2271,7 +2271,7 @@ def upload_file(filepath, download_id):
         def upload_progress(filename, bytes_read, total_len, speed, time, args):
             nonlocal part_index,part_total
             try:
-                eta = format_size(time)
+                eta = format_time(time)
                 if part_total>1:
                     eta = f' {part_index}/{part_total} Partes    [ {format_time(time)} ]'
                 if download_id in downloads:
