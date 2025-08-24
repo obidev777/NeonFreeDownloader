@@ -2267,7 +2267,7 @@ def upload_file(filepath, download_id):
         last_reported_bytes = 0
 
         def upload_progress(filename, bytes_read, total_len, speed, time, args):
-            nonlocal total_bytes_uploaded, last_reported_bytes
+            nonlocal total_bytes_uploaded, last_reported_bytes,file_size,download_id
             
             try:
                 # bytes_read es probablemente el total acumulado, no el incremento
