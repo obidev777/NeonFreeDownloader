@@ -2272,7 +2272,8 @@ def upload_file(filepath, download_id):
             part_total=1
 
         def upload_progress(filename, bytes_read, total_len, speed, time, args):
-            nonlocal part_index,part_total,downloads
+            nonlocal part_index,part_total
+            global downloads
             try:
                 eta = format_time(time)
                 if part_total>1:
