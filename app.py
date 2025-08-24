@@ -2249,30 +2249,8 @@ def handle_auth():
 
     return jsonify({'success': False}), 500
 
-
-total_bytes_read = {}
-
-def upload_progress(filename,bytes_read,len,speed,time,download_id):
-    global total_bytes_read
-    try:
-        total_bytes_read[download_id]['read'] += bytes_read
-        downloads[download_id].update({'upload_progress': int(total_bytes_read[download_id]['read']/total_bytes_read[download_id]['size']*100),
-                                               'uploaded': total_bytes_read[download_id]['read'],
-                                               'upload_speed': speed,
-                                               'upload_eta': format_time(time),
-                                               'upload_status': 'uploading'})
-    except:
-        total_bytes_read[download_id]['read'] += 0
-        downloads[download_id].update({'upload_progress': 0,
-                                               'uploaded': 0,
-                                               'upload_speed': 0,
-                                               'upload_eta': '00:00:00',
-                                               'upload_status': 'uploading'})
-
-
 def upload_file(filepath, download_id):
     global SPLIT_SIZE 
-    global total_bytes_read
     try:
         settings = {}
         with open(SETTINGS_FILE, 'r') as f:
@@ -2282,7 +2260,39 @@ def upload_file(filepath, download_id):
         uploaded = 0
         revCli = RevCli(settings['username'],settings['password'],host=settings['cloudHost'],type=settings['authType'])
         loged = revCli.login()
-        total_bytes_read[download_id] = {'read':0,'size':file_size}
+        total_bytes_read = 0
+
+        # Variables para tracking del progreso
+        total_bytes_uploaded = 0
+        last_reported_bytes = 0
+
+        def upload_progress(filename, bytes_read, total_len, speed, time, args):
+            nonlocal total_bytes_uploaded, last_reported_bytes
+            
+            try:
+                # bytes_read es probablemente el total acumulado, no el incremento
+                current_bytes = bytes_read
+                
+                # Calcular el incremento desde la última vez
+                increment = current_bytes - last_reported_bytes
+                total_bytes_uploaded += increment
+                last_reported_bytes = current_bytes
+                
+                # Asegurarse de no pasar del 100%
+                progress_percent = min(100, int((total_bytes_uploaded / file_size) * 100))
+                total_bytes_uploaded = min(total_bytes_uploaded, file_size)
+                
+                if download_id in downloads:
+                    downloads[download_id].update({
+                        'upload_progress': progress_percent,
+                        'uploaded': total_bytes_uploaded,
+                        'upload_speed': speed,
+                        'upload_eta': format_time(time),
+                        'upload_status': 'uploading'
+                    })
+                    
+            except Exception as e:
+                print(f"Error in upload_progress: {e}")
 
         public_url = ''
 
