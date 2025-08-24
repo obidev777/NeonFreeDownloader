@@ -2281,26 +2281,6 @@ def upload_file(filepath, download_id):
                 if part_total>1:
                     eta = f' {part_index}/{part_total} Partes    [ {format_time(time)} ]'
 
-                if download_id not in downloads:
-                    downloads[download_id] = {
-                        'url': url,
-                        'filename': 'Obteniendo información...',
-                        'total_size': 0,
-                        'downloaded': 0,
-                        'download_speed': 0,
-                        'download_eta': '--:--:--',
-                        'upload_progress': 0,
-                        'upload_speed': 0,
-                        'uploaded': 0,
-                        'status': 'downloading',
-                        'upload_status': 'pending',
-                        'upload_eta': '--:--:--',
-                        'public_url': None,
-                        'stop_event': threading.Event(),
-                        'start_time': time.time(),
-                        'message': ''
-                    }
-
                 if download_id in downloads:
                     downloads[download_id].update({
                         'upload_progress': int(bytes_read/total_len*100),
@@ -2596,6 +2576,26 @@ def start_download():
 
 @app.route('/progress/<download_id>')
 def progress(download_id):
+    global downloads
+    if download_id not in downloads:
+                    downloads[download_id] = {
+                        'url': url,
+                        'filename': 'Obteniendo información...',
+                        'total_size': 0,
+                        'downloaded': 0,
+                        'download_speed': 0,
+                        'download_eta': '--:--:--',
+                        'upload_progress': 0,
+                        'upload_speed': 0,
+                        'uploaded': 0,
+                        'status': 'downloading',
+                        'upload_status': 'pending',
+                        'upload_eta': '--:--:--',
+                        'public_url': None,
+                        'stop_event': threading.Event(),
+                        'start_time': time.time(),
+                        'message': ''
+                    }
     if download_id not in downloads:
         return jsonify({'error': 'ID de descarga no válido'})
     
