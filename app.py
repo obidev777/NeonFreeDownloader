@@ -13,6 +13,7 @@ from rev import *
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
 from m3u8dl import *
+import math
 
 
 def format_time(seconds):
@@ -2269,7 +2270,7 @@ def upload_file(filepath, download_id):
 
         # Variables para tracking del progreso
         part_index = 1
-        part_total = int(file_size/max_split_temp)
+        part_total = math.ceil(file_size/max_split_temp)
         if part_total<=0:
             part_total=1
 
