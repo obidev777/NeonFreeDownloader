@@ -1,5 +1,13 @@
-# instalar rependencias
-'''pip install -r requirements.txt'''
+# ⚡️ MyApp
 
-# Run
-'''python app.py'''
+Una aplicación rápida y sencilla para comenzar tu proyecto en Python.
+
+---
+
+## 🚀 Instalación
+
+Clona el repositorio y navega al directorio del proyecto:
+
+```bash
+git clone https://github.com/tu-usuario/mi-app.git
+cd mi-app
