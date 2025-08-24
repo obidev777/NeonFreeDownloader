@@ -2570,7 +2570,7 @@ def upload_file(filepath, download_id):
 
 def is_m3u8_url(url):
     """Verifica si una URL es un archivo m3u8"""
-    return url.lower().endswith('.m3u8') or 'm3u8' in url.lower()def                  
+    return url.lower().endswith('.m3u8') or 'm3u8' in url.lower()              
                     # Calcular progreso descarga
 def download_and_upload(download_id, url):
     try:
