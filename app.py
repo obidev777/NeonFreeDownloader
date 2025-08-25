@@ -587,7 +587,7 @@ def download_file_endpoint(download_id, filename):
 @app.route('/download/<download_id>')
 def download_page(download_id):
     if download_id in downloads:
-        return render_template(INDEX_HTML,dl_id=download_id)
+        return render_template("index.html",dl_id=download_id)
     else:
         return redirect('/')
 
